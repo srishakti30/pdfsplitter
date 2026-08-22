@@ -24,9 +24,9 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Build EXE with PyInstaller
+    - name: Build EXE with PyInstaller (Collecting Streamlit Metadata)
       run: |
-        pyinstaller --noconfirm --onedir --windowed --name "DocuFlow_Studio" app.py
+        pyinstaller --noconfirm --onedir --windowed --name "DocuFlow_Studio" --collect-all streamlit --copy-metadata streamlit app.py
 
     - name: Upload EXE Zip Artifact
       uses: actions/upload-artifact@v4
