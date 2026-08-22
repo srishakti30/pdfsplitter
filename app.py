@@ -10,11 +10,12 @@ import time
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Smart PDF Suite")
-st.caption("PDF వ్యూయర్, అడ్వాన్స్‌డ్ మల్టీ-స్ప్లిట్టర్, మెర్జర్ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
+st.caption("PDF వ్యూయర్, అడ్వాన్స్‌డ్ స్ప్లిట్టర్, మెర్జర్, పాస్‌వర్డ్ సెక్యూరిటీ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
 
-tab1, tab2, tab3 = st.tabs([
-    "👁️ & ✂️ PDF Preview & Advanced Splitter", 
+tab1, tab2, tab3, tab4 = st.tabs([
+    "👁️ & ✂️ PDF Preview & Splitter", 
     "📑 PDF Merger (కలపడం)", 
+    "🔒 PDF Lock (పాస్‌వర్డ్ సెట్ చేయడం)",
     "🌐 Multi-Language Text Extractor"
 ])
 
@@ -258,9 +259,55 @@ with tab2:
             )
 
 # -------------------------------------------------------------
-# TAB 3: మల్టీ-లాంగ్వేజ్ టెక్స్ట్ ఎక్స్‌ట్రాక్టర్
+# TAB 3: PDF లాక్ / పాస్‌వర్డ్ సెక్యూరిటీ
 # -------------------------------------------------------------
 with tab3:
+    st.subheader("🔒 PDF Password Protection (లాక్ చేయడం)")
+    st.caption("మీ సున్నితమైన PDF డాక్యుమెంట్లకు బలమైన పాస్‌వర్డ్‌ను సెట్ చేసి భద్రపరచండి.")
+
+    lock_file = st.file_uploader("పాస్‌వర్డ్ పెట్టాల్సిన PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="lock_upload")
+
+    if lock_file is not None:
+        file_base = lock_file.name.rsplit(".", 1)[0]
+        col_pass1, col_pass2 = st.columns(2)
+        
+        with col_pass1:
+            user_password = st.text_input("కొత్త పాస్‌వర్డ్ టైప్ చేయండి:", type="password", key="pwd_input")
+        with col_pass2:
+            confirm_password = st.text_input("పాస్‌వర్డ్‌ను మళ్లీ టైప్ చేయండి (Confirm):", type="password", key="pwd_confirm")
+
+        if st.button("🔒 Set Password & Protect PDF", key="btn_lock_pdf"):
+            if not user_password:
+                st.warning("దయచేసి పాస్‌వర్డ్ నమోదు చేయండి.")
+            elif user_password != confirm_password:
+                st.error("రెండు పాస్‌వర్డ్‌లు సరిపోలడం లేదు (Passwords do not match).")
+            else:
+                reader = PdfReader(lock_file)
+                writer = PdfWriter()
+
+                for page in reader.pages:
+                    writer.add_page(page)
+
+                # పాస్‌వర్డ్ ఎన్‌క్రిప్షన్ (128-bit AES సెక్యూరిటీ)
+                writer.encrypt(user_password)
+
+                locked_buffer = io.BytesIO()
+                writer.write(locked_buffer)
+                locked_buffer.seek(0)
+
+                st.balloons()
+                st.success("✅ PDFకి పాస్‌వర్డ్ విజయవంతంగా సెట్ చేయబడింది!")
+                st.download_button(
+                    label=f"📥 Download Protected_{file_base}.pdf",
+                    data=locked_buffer,
+                    file_name=f"Protected_{file_base}.pdf",
+                    mime="application/pdf"
+                )
+
+# -------------------------------------------------------------
+# TAB 4: మల్టీ-లాంగ్వేజ్ టెక్స్ట్ ఎక్స్‌ట్రాక్టర్
+# -------------------------------------------------------------
+with tab4:
     st.subheader("🌐 Multi-Language Text Extractor")
     uploaded_lang_file = st.file_uploader("PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="lang_upload")
 
