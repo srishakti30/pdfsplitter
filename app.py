@@ -4,17 +4,19 @@ import pypdfium2 as pdfium
 from langdetect import detect
 import io
 import pdf_engine as engine
+import media_engine as media_eng
 
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Ultimate PDF Suite")
-st.caption("స్మార్ట్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, జిప్ ప్యాకర్, ఇమేజ్ కన్వర్టర్, పేజ్ డిలీట్/రీఆర్డర్, లాక్ & అన్‌లాక్.")
+st.caption("స్మార్ట్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, జిప్ ప్యాకర్, ఇమేజ్ కన్వర్టర్, పేజ్ డిలీట్/రీఆర్డర్, లాక్ & అన్‌లాక్, వీడియో/GIF టు PDF.")
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "👁️ Live Visual Studio", 
     "📑 PDF Merger & ZIP Packer", 
-    "🖼️ Image ↔ PDF Converter",
-    "🗑️ & 🔀 Delete / Reorder Pages",
+    "🖼️ Image ↔ PDF",
+    "🎬 Video / GIF టు PDF",
+    "🗑️ & 🔀 Delete / Reorder",
     "🔒 & 🔓 Lock / Unlock",
     "🌐 Text Extractor"
 ])
@@ -156,32 +158,35 @@ with tab1:
                 st.error(f"ప్రివ్యూ రెండరింగ్ లోపం: {e}")
 
 # -------------------------------------------------------------
-# TAB 2: PDF Merger & ZIP Packer (DUAL ACTION)
+# TAB 2: PDF Merger & Universal ZIP Packer
 # -------------------------------------------------------------
 with tab2:
-    st.subheader("📑 PDF Merger & ZIP Package")
-    st.caption("బహుళ PDF ఫైళ్లను అప్‌లోడ్ చేసి ఒకే ఫైల్‌గా కలపండి లేదా విడివిడిగా ఒకే సురక్షిత ZIP ఫైల్‌గా ప్యాక్ చేయండి.")
+    st.subheader("📑 PDF Merger & Universal ZIP Packer")
+    st.caption("PDF లను ఒకే ఫైల్‌గా కలపండి లేదా ఏ రకమైన ఫైళ్లనైనా (Images, Code, Docs, Softwares మొదలైనవి) ఒకే సురక్షిత ZIP ఫైల్‌గా ప్యాక్ చేయండి.")
     
-    m_files = st.file_uploader("కలపాల్సిన లేదా ప్యాక్ చేయాల్సిన PDF ఫైళ్లు:", accept_multiple_files=True, key="m_u_tab2")
+    m_files = st.file_uploader("ఫైళ్లను ఎంచుకోండి (ఏ ఫైల్ అయినా సరే):", accept_multiple_files=True, key="m_u_tab2")
     if m_files:
         st.info(f"మొత్తం ఎంచుకున్న ఫైళ్లు: **{len(m_files)}**")
         for idx, f in enumerate(m_files):
-            st.write(f"{idx + 1}. 📄 {f.name} ({len(f.getvalue()) / 1024:.1f} KB)")
+            st.write(f"{idx + 1}. 📁 {f.name} ({len(f.getvalue()) / 1024:.1f} KB)")
 
         col_m1, col_m2 = st.columns(2)
         with col_m1:
-            if st.button("🔗 1. Merge into Single PDF", key="btn_merge_single_tab2"):
-                out_m, total_pages_m = engine.merge_pdf_files(m_files)
-                st.balloons()
-                st.success(f"✅ అన్ని ఫైళ్లు ఒకే డాక్యుమెంట్‌గా మారాయి! మొత్తం పేజీలు: **{total_pages_m}**")
-                st.download_button("📥 Download Merged PDF", out_m, "DocuFlow_Merged.pdf", "application/pdf")
+            if st.button("🔗 1. Merge PDFs (కేవలం PDFల కోసం)", key="btn_merge_single_tab2"):
+                try:
+                    out_m, total_pages_m = engine.merge_pdf_files(m_files)
+                    st.balloons()
+                    st.success(f"✅ అన్ని PDFలు ఒకే డాక్యుమెంట్‌గా మారాయి! మొత్తం పేజీలు: **{total_pages_m}**")
+                    st.download_button("📥 Download Merged PDF", out_m, "DocuFlow_Merged.pdf", "application/pdf")
+                except Exception as e:
+                    st.error(f"మెర్జ్ చేయడంలో లోపం: {e}")
 
         with col_m2:
-            if st.button("📦 2. Package into Single ZIP Archive", key="btn_pack_zip_tab2"):
+            if st.button("📦 2. Package All Files into ZIP (అన్ని రకాల ఫైల్స్)", key="btn_pack_zip_tab2"):
                 zip_all_out = engine.zip_multiple_pdf_files(m_files)
                 st.balloons()
                 st.success(f"✅ మొత్తం **{len(m_files)}** ఫైళ్లు ఒకే ZIP ఆర్కైవ్‌గా ప్యాక్ అయ్యాయి!")
-                st.download_button("📥 Download All PDFs ZIP", zip_all_out, "DocuFlow_PDF_Archive.zip", "application/zip")
+                st.download_button("📥 Download All Files ZIP", zip_all_out, "DocuFlow_Archive.zip", "application/zip")
 
 # -------------------------------------------------------------
 # TAB 3: Image ↔ PDF Converter
@@ -215,9 +220,52 @@ with tab3:
                 st.download_button(f"📥 Download All Images (ZIP)", zip_out, f"{b_name}_JPG_Images.zip", "application/zip")
 
 # -------------------------------------------------------------
-# TAB 4: Delete & Reorder Pages
+# TAB 4: Video / GIF to PDF (NEW MICRO-MODULE)
 # -------------------------------------------------------------
 with tab4:
+    st.subheader("🎬 Video / Animated GIF to PDF Storyboard")
+    st.caption("వీడియోలు మరియు GIF యానిమేషన్ల నుండి ముఖ్యమైన దృశ్యాలను (Frames) సంగ్రహించి PDF డాక్యుమెంట్‌గా మార్చండి.")
+    st.info("🛡️ **సురక్షిత పరిమితి:** గరిష్టంగా **50 MB** లోపు సైజు గల ఫైళ్లు మాత్రమే అనుమతించబడతాయి.")
+
+    media_f = st.file_uploader("వీడియో లేదా GIF ఫైల్‌ను ఎంచుకోండి (MP4, MOV, MKV, GIF):", type=["mp4", "mov", "avi", "mkv", "gif"], key="media_to_pdf_u")
+
+    if media_f:
+        file_size_mb = len(media_f.getvalue()) / (1024 * 1024)
+        m_base = media_f.name.rsplit(".", 1)[0]
+        ext = media_f.name.rsplit(".", 1)[-1].lower()
+
+        if file_size_mb > 50.0:
+            st.error(f"❌ ఫైల్ సైజు **{file_size_mb:.1f} MB** ఉంది. దయచేసి 50 MB కంటే తక్కువ ఉన్న ఫైల్‌ను అప్‌లోడ్ చేయండి.")
+        else:
+            st.success(f"ఫైల్: **{media_f.name}** ({file_size_mb:.2f} MB)")
+
+            if ext == "gif":
+                f_skip = st.slider("ప్రతి ఎన్ని ఫ్రేమ్‌లకు ఒక పేజీ కావాలి?", 1, 10, 1, key="gif_skip_slider")
+                if st.button("🎬 Convert GIF to PDF", key="btn_gif_convert"):
+                    with st.spinner("GIF ప్రాసెస్ అవుతోంది..."):
+                        out_pdf, f_count = media_eng.process_gif_to_pdf(media_f, f_skip)
+                        st.balloons()
+                        st.success(f"✅ మొత్తం **{f_count}** ఫ్రేమ్‌లు PDF పేజీలుగా మారాయి!")
+                        st.download_button(f"📥 Download {m_base}_Storyboard.pdf", out_pdf, f"{m_base}_Storyboard.pdf", "application/pdf")
+
+            else:
+                c_v1, c_v2 = st.columns(2)
+                with c_v1:
+                    interval = st.selectbox("ఎంత సమయానికి ఒక ఫోటో/ఫ్రేమ్ కావాలి?", [0.5, 1.0, 2.0, 5.0, 10.0], index=1, format_func=lambda x: f"ప్రతి {x} సెకన్లకు (Every {x}s)")
+                with c_v2:
+                    max_f = st.number_input("గరిష్ట పేజీల పరిమితి (Max Pages):", min_value=10, max_value=200, value=100)
+
+                if st.button("🎬 Convert Video to Storyboard PDF", key="btn_vid_convert"):
+                    with st.spinner("వీడియో దృశ్యాలు విశ్లేషించబడుతున్నాయి..."):
+                        out_pdf, f_count, dur = media_eng.process_video_to_pdf(media_f, interval, max_f)
+                        st.balloons()
+                        st.success(f"✅ వీడియో నిడివి: **{dur:.1f} సెకన్లు** | సేకరించిన పేజీలు: **{f_count}**")
+                        st.download_button(f"📥 Download {m_base}_Video_Notes.pdf", out_pdf, f"{m_base}_Video_Notes.pdf", "application/pdf")
+
+# -------------------------------------------------------------
+# TAB 5: Delete & Reorder Pages
+# -------------------------------------------------------------
+with tab5:
     st.subheader("🗑️ & 🔀 Delete or Reorder Pages")
     st.caption("అనవసరమైన పేజీలను తొలగించండి లేదా పేజీల క్రమాన్ని మార్చండి.")
 
@@ -265,20 +313,20 @@ with tab4:
                     st.error(f"ఆర్డర్ లోపం: {e}")
 
 # -------------------------------------------------------------
-# TAB 5: Lock / Unlock
+# TAB 6: Lock / Unlock
 # -------------------------------------------------------------
-with tab5:
+with tab6:
     st.subheader("🔒 & 🔓 PDF Security (లాక్ & అన్‌లాక్)")
-    sec_act = st.radio("ఆప్షన్ ఎంచుకోండి:", ["🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)", "🔓 పాస్‌వర్డ్ తీసివేయడం (Unlock PDF)"], horizontal=True, key="sec_act_tab5")
+    sec_act = st.radio("ఆప్షన్ ఎంచుకోండి:", ["🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)", "🔓 పాస్‌వర్డ్ తీసివేయడం (Unlock PDF)"], horizontal=True, key="sec_act_tab6")
     
     if sec_act == "🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)":
-        l_f = st.file_uploader("లాక్ చేయాల్సిన PDF:", type=["pdf"], key="l_u_tab5")
+        l_f = st.file_uploader("లాక్ చేయాల్సిన PDF:", type=["pdf"], key="l_u_tab6")
         if l_f:
             f_b = l_f.name.rsplit(".", 1)[0]
             p1, p2 = st.columns(2)
-            pwd1 = p1.text_input("పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="p1_tab5")
-            pwd2 = p2.text_input("పాస్‌వర్డ్‌ను ధృవీకరించండి:", type="password", key="p2_tab5")
-            if st.button("🔒 Set Password", key="btn_lock_tab5"):
+            pwd1 = p1.text_input("పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="p1_tab6")
+            pwd2 = p2.text_input("పాస్‌వర్డ్‌ను ధృవీకరించండి:", type="password", key="p2_tab6")
+            if st.button("🔒 Set Password", key="btn_lock_tab6"):
                 if pwd1 and pwd1 == pwd2:
                     out = engine.lock_pdf(l_f, pwd1)
                     st.balloons()
@@ -287,11 +335,11 @@ with tab5:
                 else:
                     st.error("రెండు పాస్‌వర్డ్‌లు సరిపోలలేదు.")
     else:
-        u_f = st.file_uploader("పాస్‌వర్డ్ ఉన్న PDF:", type=["pdf"], key="u_u_tab5")
+        u_f = st.file_uploader("పాస్‌వర్డ్ ఉన్న PDF:", type=["pdf"], key="u_u_tab6")
         if u_f:
             f_b = u_f.name.rsplit(".", 1)[0]
-            cur_pwd = st.text_input("ప్రస్తుత పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="u_p_tab5")
-            if st.button("🔓 Unlock PDF", key="btn_unlock_tab5") and cur_pwd:
+            cur_pwd = st.text_input("ప్రస్తుత పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="u_p_tab6")
+            if st.button("🔓 Unlock PDF", key="btn_unlock_tab6") and cur_pwd:
                 out, status = engine.unlock_pdf(u_f, cur_pwd)
                 if status == "SUCCESS":
                     st.balloons()
@@ -303,11 +351,11 @@ with tab5:
                     st.info("ఈ PDFకి ఎలాంటి పాస్‌వర్డ్ లేదు.")
 
 # -------------------------------------------------------------
-# TAB 6: Multi-Lang Extractor
+# TAB 7: Multi-Lang Extractor
 # -------------------------------------------------------------
-with tab6:
+with tab7:
     st.subheader("🌐 Multi-Language Text Extractor")
-    lang_f = st.file_uploader("PDF అప్‌లోడ్ చేయండి:", type=["pdf"], key="lang_u_tab6")
+    lang_f = st.file_uploader("PDF అప్‌లోడ్ చేయండి:", type=["pdf"], key="lang_u_tab7")
     if lang_f:
         r = PdfReader(lang_f)
         txt = "\n\n".join([p.extract_text() or "" for p in r.pages])
