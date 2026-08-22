@@ -1,4 +1,6 @@
 streamlit
 pypdf
+pypdfium2
+Pillow
 langdetect
 reportlab
