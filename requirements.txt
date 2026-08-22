@@ -4,3 +4,4 @@ pypdfium2
 Pillow
 langdetect
 reportlab
+opencv-python-headless
