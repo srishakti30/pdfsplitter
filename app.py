@@ -4,21 +4,22 @@ import pypdfium2 as pdfium
 from langdetect import detect
 from PIL import Image
 import io
+import zipfile
 import time
 
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Smart PDF Tools")
-st.caption("PDF వ్యూయర్, స్ప్లిట్టర్, మెర్జర్ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
+st.caption("PDF వ్యూయర్, అడ్వాన్స్‌డ్ మల్టీ-స్ప్లిట్టర్, మెర్జర్ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
 
 tab1, tab2, tab3 = st.tabs([
-    "👁️ & ✂️ PDF Preview & Splitter", 
+    "👁️ & ✂️ PDF Preview & Advanced Splitter", 
     "📑 PDF Merger (కలపడం)", 
     "🌐 Multi-Language Text Extractor"
 ])
 
 # -------------------------------------------------------------
-# TAB 1: PDF ప్రివ్యూ & స్ప్లిట్టింగ్
+# TAB 1: PDF ప్రివ్యూ & అడ్వాన్స్‌డ్ స్ప్లిట్టింగ్
 # -------------------------------------------------------------
 with tab1:
     col_left, col_right = st.columns([1.2, 1])
@@ -63,17 +64,23 @@ with tab1:
 
                 split_mode = st.radio(
                     "విభజన పద్ధతిని ఎంచుకోండి:",
-                    ["కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)", "2 భాగాలుగా విడదీయడం", "3 భాగాలుగా విడదీయడం"]
+                    [
+                        "1. కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)",
+                        "2. కస్టమ్ మల్టిపుల్ రేంజెస్ (కావలసిన భాగాలుగా)",
+                        "3. ఫిక్స్‌డ్ గ్రూప్స్ (ప్రతి N పేజీలకు ఒక PDF)",
+                        "4. ప్రతి పేజీని విడివిడిగా (1 Page = 1 PDF)"
+                    ]
                 )
 
-                if split_mode == "కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)":
+                # ఆప్షన్ 1: కస్టమ్ రేంజ్ (ఒక భాగం)
+                if split_mode == "1. కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)":
                     c1, c2 = st.columns(2)
                     with c1:
                         start_p = st.number_input("నుండి (Start Page)", min_value=1, max_value=total_pages, value=1)
                     with c2:
                         end_p = st.number_input("వరకు (End Page)", min_value=start_p, max_value=total_pages, value=min(start_p+1, total_pages))
 
-                    if st.button("✂️ Generate Cut PDF", key="btn_custom"):
+                    if st.button("✂️ Generate Single Cut PDF", key="btn_custom"):
                         writer = PdfWriter()
                         for p in range(start_p - 1, end_p):
                             writer.add_page(reader.pages[p])
@@ -82,59 +89,106 @@ with tab1:
                         out_buffer.seek(0)
                         
                         st.download_button(
-                            label=f"📥 Download Pages {start_p}-{end_p} (PDF)",
+                            label=f"📥 Download Pages_{start_p}_to_{end_p}.pdf",
                             data=out_buffer,
-                            file_name=f"Pages_{start_p}_to_{end_p}.pdf",
+                            file_name=f"Doc_Pages_{start_p}_to_{end_p}.pdf",
                             mime="application/pdf"
                         )
 
-                elif split_mode == "2 భాగాలుగా విడదీయడం":
-                    split_point = st.slider("మొదటి భాగం ముగింపు పేజీ", min_value=1, max_value=total_pages - 1, value=total_pages // 2 if total_pages > 1 else 1)
-                    st.write(f"👉 **పార్ట్ 1:** 1-{split_point} | **పార్ట్ 2:** {split_point + 1}-{total_pages}")
+                # ఆప్షన్ 2: కస్టమ్ మల్టిపుల్ రేంజెస్ (కామాతో వేరు చేసి ఇవ్వడం)
+                elif split_mode == "2. కస్టమ్ మల్టిపుల్ రేంజెస్ (కావలసిన భాగాలుగా)":
+                    st.caption("ఉదాహరణకు: **1-2, 3-5, 6-10** లేదా **1, 3, 5-8** అని కామాలతో ఇవ్వండి.")
+                    ranges_input = st.text_input("పేజీ రేంజ్‌లు టైప్ చేయండి:", value="1-2, 3-5")
 
-                    if st.button("✂️ Split into 2 PDFs", key="btn_two"):
-                        w1, w2 = PdfWriter(), PdfWriter()
-                        for p in range(0, split_point):
-                            w1.add_page(reader.pages[p])
-                        for p in range(split_point, total_pages):
-                            w2.add_page(reader.pages[p])
+                    if st.button("✂️ Split by Custom Ranges", key="btn_multi_range"):
+                        zip_buffer = io.BytesIO()
+                        ranges = [r.strip() for r in ranges_input.split(",") if r.strip()]
                         
-                        b1, b2 = io.BytesIO(), io.BytesIO()
-                        w1.write(b1); b1.seek(0)
-                        w2.write(b2); b2.seek(0)
+                        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+                            for idx, r in enumerate(ranges):
+                                try:
+                                    if "-" in r:
+                                        sp, ep = map(int, r.split("-"))
+                                    else:
+                                        sp = ep = int(r)
 
-                        st.download_button(f"📥 Download Part 1 (1-{split_point})", data=b1, file_name="Part_1.pdf", mime="application/pdf")
-                        st.download_button(f"📥 Download Part 2 ({split_point+1}-{total_pages})", data=b2, file_name="Part_2.pdf", mime="application/pdf")
+                                    if 1 <= sp <= ep <= total_pages:
+                                        writer = PdfWriter()
+                                        for p in range(sp - 1, ep):
+                                            writer.add_page(reader.pages[p])
+                                        
+                                        p_buf = io.BytesIO()
+                                        writer.write(p_buf)
+                                        p_buf.seek(0)
+                                        
+                                        file_title = f"Part_{idx+1}_Pages_{sp}_to_{ep}.pdf"
+                                        zip_file.writestr(file_title, p_buf.getvalue())
+                                except:
+                                    pass
 
-                elif split_mode == "3 భాగాలుగా విడదీయడం":
-                    if total_pages < 3:
-                        st.warning("ఈ PDFలో 3 కంటే తక్కువ పేజీలు ఉన్నాయి.")
-                    else:
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            p1_end = st.number_input("భాగం 1 ముగింపు పేజీ", min_value=1, max_value=total_pages - 2, value=1)
-                        with c2:
-                            p2_end = st.number_input("భాగం 2 ముగింపు పేజీ", min_value=p1_end + 1, max_value=total_pages - 1, value=p1_end + 1)
+                        zip_buffer.seek(0)
+                        st.download_button(
+                            label="📥 Download All Parts (ZIP)",
+                            data=zip_buffer,
+                            file_name="Custom_Split_PDFs.zip",
+                            mime="application/zip"
+                        )
 
-                        st.write(f"👉 **1:** 1-{p1_end} | **2:** {p1_end+1}-{p2_end} | **3:** {p2_end+1}-{total_pages}")
+                # ఆప్షన్ 3: ఫిక్స్‌డ్ గ్రూప్స్ (ప్రతి N పేజీలకు)
+                elif split_mode == "3. ఫిక్స్‌డ్ గ్రూప్స్ (ప్రతి N పేజీలకు ఒక PDF)":
+                    chunk_size = st.number_input("ప్రతి PDFలో ఎన్ని పేజీలు ఉండాలి?", min_value=1, max_value=total_pages, value=2)
+                    total_chunks = (total_pages + chunk_size - 1) // chunk_size
+                    st.info(f"మొత్తం **{total_chunks}** PDF ఫైళ్లు తయారవుతాయి.")
 
-                        if st.button("✂️ Split into 3 PDFs", key="btn_three"):
-                            w1, w2, w3 = PdfWriter(), PdfWriter(), PdfWriter()
-                            for p in range(0, p1_end):
-                                w1.add_page(reader.pages[p])
-                            for p in range(p1_end, p2_end):
-                                w2.add_page(reader.pages[p])
-                            for p in range(p2_end, total_pages):
-                                w3.add_page(reader.pages[p])
+                    if st.button("✂️ Split by Fixed Chunks", key="btn_chunks"):
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+                            for chunk_i in range(0, total_pages, chunk_size):
+                                sp = chunk_i + 1
+                                ep = min(chunk_i + chunk_size, total_pages)
+                                
+                                writer = PdfWriter()
+                                for p in range(chunk_i, ep):
+                                    writer.add_page(reader.pages[p])
+                                
+                                p_buf = io.BytesIO()
+                                writer.write(p_buf)
+                                p_buf.seek(0)
+                                
+                                zip_file.writestr(f"Group_Pages_{sp}_to_{ep}.pdf", p_buf.getvalue())
 
-                            b1, b2, b3 = io.BytesIO(), io.BytesIO(), io.BytesIO()
-                            w1.write(b1); b1.seek(0)
-                            w2.write(b2); b2.seek(0)
-                            w3.write(b3); b3.seek(0)
+                        zip_buffer.seek(0)
+                        st.download_button(
+                            label=f"📥 Download {total_chunks} PDF Files (ZIP)",
+                            data=zip_buffer,
+                            file_name=f"Split_in_groups_of_{chunk_size}.zip",
+                            mime="application/zip"
+                        )
 
-                            st.download_button(f"📥 Part 1 (1-{p1_end})", data=b1, file_name="Part_1.pdf", mime="application/pdf")
-                            st.download_button(f"📥 Part 2 ({p1_end+1}-{p2_end})", data=b2, file_name="Part_2.pdf", mime="application/pdf")
-                            st.download_button(f"📥 Part 3 ({p2_end+1}-{total_pages})", data=b3, file_name="Part_3.pdf", mime="application/pdf")
+                # ఆప్షన్ 4: ప్రతి పేజీని విడివిడిగా (1 Page = 1 PDF)
+                elif split_mode == "4. ప్రతి పేజీని విడివిడిగా (1 Page = 1 PDF)":
+                    st.info(f"ఈ PDFలోని అన్ని **{total_pages}** పేజీలు విడివిడి PDFలుగా మారి ఒకే ZIP ఫైల్‌గా వస్తాయి.")
+                    
+                    if st.button("✂️ Split Every Single Page", key="btn_all_pages"):
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+                            for i, page in enumerate(reader.pages):
+                                writer = PdfWriter()
+                                writer.add_page(page)
+                                
+                                p_buf = io.BytesIO()
+                                writer.write(p_buf)
+                                p_buf.seek(0)
+                                
+                                zip_file.writestr(f"Page_{i+1:03d}.pdf", p_buf.getvalue())
+
+                        zip_buffer.seek(0)
+                        st.download_button(
+                            label=f"📥 Download All {total_pages} Pages (ZIP)",
+                            data=zip_buffer,
+                            file_name="All_Single_Pages.zip",
+                            mime="application/zip"
+                        )
 
         except Exception as e:
             diag_status = "Error Occurred"
@@ -158,14 +212,14 @@ with tab1:
             st.success("✅ పిడిఎఫ్ ఇంజిన్ సాధారణంగా పనిచేస్తోంది.")
 
 # -------------------------------------------------------------
-# TAB 2: PDF మెర్జర్ (బహుళ ఫైళ్లను కలపడం)
+# TAB 2: PDF మెర్జర్
 # -------------------------------------------------------------
 with tab2:
     st.subheader("📑 PDF Merger (కలపడం)")
     st.caption("రెండు లేదా అంతకంటే ఎక్కువ PDF ఫైళ్లను అప్‌లోడ్ చేసి ఒకే ఫైల్‌గా కలపండి.")
 
     merge_files = st.file_uploader(
-        "కలపాల్సిన PDF ఫైళ్లను ఎంచుకోండి (ఒకేసారి ఎన్ని ఫైళ్లయినా ఎంచుకోవచ్చు)", 
+        "కలపాల్సిన PDF ఫైళ్లను ఎంచుకోండి", 
         type=["pdf"], 
         accept_multiple_files=True, 
         key="merge_upload"
@@ -173,8 +227,6 @@ with tab2:
 
     if merge_files:
         st.write(f"మొత్తం ఎంచుకున్న ఫైళ్లు: **{len(merge_files)}**")
-        
-        # ఎంచుకున్న ఫైళ్ల జాబితా చూపించడం
         for idx, f in enumerate(merge_files):
             st.write(f"{idx + 1}. 📄 {f.name} ({len(f.getvalue()) / 1024:.1f} KB)")
 
