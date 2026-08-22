@@ -3,7 +3,6 @@ from pypdf import PdfReader
 import pypdfium2 as pdfium
 from langdetect import detect
 import io
-import time
 import pdf_engine as engine
 
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
@@ -89,46 +88,91 @@ with tab2:
         st.success(f"విజయవంతంగా కలిసింది! మొత్తం పేజీలు: {total}")
         st.download_button("📥 Download Merged PDF", out, "DocuFlow_Merged.pdf", "application/pdf")
 
-# ---------------- TAB 3: Watermark ----------------
+# ---------------- TAB 3: Advanced Watermark ----------------
 with tab3:
-    st.subheader("💧 PDF Watermark (వాటర్‌మార్క్)")
-    st.caption("అన్ని పేజీలపై ఆటోమేటిక్‌గా పారదర్శక వాటర్‌మార్క్ ముద్రించబడుతుంది.")
+    st.subheader("💧 Advanced PDF Watermark")
+    st.caption("అన్ని పేజీలకు లేదా మీరు ఎంచుకున్న పేజీలకు మాత్రమే వాటర్‌మార్క్ మరియు కావలసిన స్థానాన్ని సెట్ చేయండి.")
+    
     wm_file = st.file_uploader("PDF అప్‌లోడ్ చేయండి", type=["pdf"], key="wm_u")
     if wm_file:
         b_name = wm_file.name.rsplit(".", 1)[0]
-        wm_text = st.text_input("వాటర్‌మార్క్ టెక్స్ట్:", value="CONFIDENTIAL")
-        col_w1, col_w2 = st.columns(2)
-        opacity = col_w1.slider("పారదర్శకత (Opacity):", 0.05, 0.9, 0.20, 0.05)
-        f_size = col_w2.slider("ఫాంట్ సైజు:", 20, 80, 42)
-        
-        if st.button("💧 Apply Watermark to All Pages"):
-            out = engine.apply_watermark(wm_file, wm_text, opacity, f_size)
-            st.balloons()
-            st.success("✅ అన్ని పేజీలకు వాటర్‌మార్క్ అప్లై అయింది!")
-            st.download_button(f"📥 Download Watermarked_{b_name}.pdf", out, f"Watermarked_{b_name}.pdf", "application/pdf")
+        r_temp = PdfReader(wm_file)
+        t_pages = len(r_temp.pages)
+        st.info(f"మొత్తం పేజీల సంఖ్య: **{t_pages}**")
 
-# ---------------- TAB 4: Page Rotator ----------------
+        col_w1, col_w2 = st.columns(2)
+        with col_w1:
+            wm_text = st.text_input("వాటర్‌మార్క్ టెక్స్ట్:", value="CONFIDENTIAL")
+            wm_target_mode = st.radio("ఏ పేజీలకు వాటర్‌మార్క్ కావాలి?", ["అన్ని పేజీలకు (All Pages)", "ఎంచుకున్న పేజీలకు మాత్రమే (Custom Pages)"], horizontal=True)
+            custom_pages_str = ""
+            if wm_target_mode == "ఎంచుకున్న పేజీలకు మాత్రమే (Custom Pages)":
+                custom_pages_str = st.text_input("పేజీ నంబర్లు నమోదు చేయండి (ఉదా: 1, 3, 5-10):", value="1, 3")
+
+        with col_w2:
+            wm_pos = st.selectbox("వాటర్‌మార్క్ స్థానం (Position):", [
+                "Center Diagonal (మధ్యలో - 45° వాలుగా)",
+                "Center Straight (మధ్యలో - నిలువు/అడ్డం 0°)",
+                "Top-Left (ఎగువ ఎడమ)",
+                "Top-Right (ఎగువ కుడి)",
+                "Bottom-Left (దిగువ ఎడమ)",
+                "Bottom-Right (దిగువ కుడి)"
+            ])
+            c_op, c_fs = st.columns(2)
+            opacity = c_op.slider("పారదర్శకత (Opacity):", 0.05, 0.9, 0.20, 0.05)
+            f_size = c_fs.slider("ఫాంట్ సైజు:", 16, 72, 36)
+
+        if st.button("💧 Apply Custom Watermark", key="btn_wm_apply"):
+            target_set = None
+            if wm_target_mode == "ఎంచుకున్న పేజీలకు మాత్రమే (Custom Pages)":
+                target_set = engine.parse_page_numbers(custom_pages_str, t_pages)
+                if not target_set:
+                    st.warning("దయచేసి సరైన పేజీ నంబర్లు నమోదు చేయండి.")
+            
+            if wm_target_mode == "అన్ని పేజీలకు (All Pages)" or target_set:
+                out = engine.apply_advanced_watermark(wm_file, wm_text, target_set, wm_pos, opacity, f_size)
+                st.balloons()
+                st.success("✅ వాటర్‌మార్క్ విజయవంతంగా అప్లై చేయబడింది!")
+                st.download_button(f"📥 Download Watermarked_{b_name}.pdf", out, f"Watermarked_{b_name}.pdf", "application/pdf")
+
+# ---------------- TAB 4: Page Rotator with Live Preview ----------------
 with tab4:
-    st.subheader("🔄 PDF Page Rotator (పేజీలు తిప్పడం)")
+    st.subheader("🔄 PDF Page Rotator (లైవ్ ప్రివ్యూతో)")
+    st.caption("పేజీలు ఎలా తిరుగుతున్నాయో స్క్రీన్‌పై ప్రత్యక్షంగా చూస్తూ రొటేట్ చేయండి.")
+    
     rot_file = st.file_uploader("తిప్పాల్సిన PDF అప్‌లోడ్ చేయండి", type=["pdf"], key="rot_u")
     if rot_file:
         r_base = rot_file.name.rsplit(".", 1)[0]
-        r_reader = PdfReader(rot_file)
-        t_pages = len(r_reader.pages)
-        st.info(f"మొత్తం పేజీలు: **{t_pages}**")
-        
-        rot_mode = st.radio("రొటేట్ మోడ్ ఎంచుకోండి:", ["అన్ని పేజీలు (All Pages)", "నిర్దిష్ట పేజీ మాత్రమే (Single Page)"], horizontal=True)
-        target_p = 1
-        if rot_mode == "నిర్దిష్ట పేజీ మాత్రమే (Single Page)":
-            target_p = st.number_input("ఏ పేజీని తిప్పాలి?", 1, t_pages, 1)
+        rot_bytes = rot_file.getvalue()
+        rot_doc = pdfium.PdfDocument(rot_bytes)
+        t_pages = len(rot_doc)
+
+        col_rot_l, col_rot_r = st.columns([1.2, 1])
+
+        with col_rot_r:
+            st.subheader("⚙️ Rotation Settings")
+            st.info(f"మొత్తం పేజీలు: **{t_pages}**")
+            rot_mode = st.radio("రొటేట్ పరిధి:", ["అన్ని పేజీలు (All Pages)", "నిర్దిష్ట పేజీ మాత్రమే (Single Page)"], horizontal=True, key="rot_mode_sel")
             
-        angle_choice = st.selectbox("ఎన్ని డిగ్రీలు తిప్పాలి?", [90, 180, 270], format_func=lambda x: f"{x}° క్లాక్‌వైజ్")
-        
-        if st.button("🔄 Rotate PDF"):
-            out = engine.rotate_pdf_pages(rot_file, rot_mode, target_p, angle_choice)
-            st.balloons()
-            st.success("✅ పేజీలు విజయవంతంగా తిప్పబడ్డాయి!")
-            st.download_button(f"📥 Download Rotated_{r_base}.pdf", out, f"Rotated_{r_base}.pdf", "application/pdf")
+            p_to_view = 1
+            if rot_mode == "నిర్దిష్ట పేజీ మాత్రమే (Single Page)":
+                p_to_view = st.number_input("ఏ పేజీని తిప్పాలి?", min_value=1, max_value=t_pages, value=1, key="rot_p_num")
+            else:
+                p_to_view = st.number_input("ప్రివ్యూ చూడాల్సిన పేజీ:", min_value=1, max_value=t_pages, value=1, key="rot_p_view_all")
+
+            angle_choice = st.selectbox("తిప్పాల్సిన కోణం (Angle):", [90, 180, 270], format_func=lambda x: f"{x}° క్లాక్‌వైజ్", key="rot_angle_sel")
+
+            if st.button("🔄 Rotate & Save PDF", key="btn_do_rotate"):
+                out = engine.rotate_pdf_pages(rot_file, rot_mode, p_to_view, angle_choice)
+                st.balloons()
+                st.success("✅ పేజీలు విజయవంతంగా తిప్పబడ్డాయి!")
+                st.download_button(f"📥 Download Rotated_{r_base}.pdf", out, f"Rotated_{r_base}.pdf", "application/pdf")
+
+        with col_rot_l:
+            st.subheader("👁️ Live Rotation Preview")
+            # ప్రివ్యూ కోసం ఎంచుకున్న కోణంలో తిప్పి చూపించడం
+            page_obj = rot_doc.get_page(p_to_view - 1)
+            pil_rot_img = page_obj.render(scale=2.0, rotation=angle_choice).to_pil()
+            st.image(pil_rot_img, caption=f"పేజీ {p_to_view} (రొటేట్ అయిన తర్వాత {angle_choice}° వ్యూ)", use_container_width=True)
 
 # ---------------- TAB 5: Lock / Unlock ----------------
 with tab5:
