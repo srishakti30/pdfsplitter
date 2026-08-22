@@ -9,7 +9,7 @@ import time
 
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
-st.title("📄 DocuFlow Studio | Smart PDF Tools")
+st.title("📄 DocuFlow Studio | Smart PDF Suite")
 st.caption("PDF వ్యూయర్, అడ్వాన్స్‌డ్ మల్టీ-స్ప్లిట్టర్, మెర్జర్ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
 
 tab1, tab2, tab3 = st.tabs([
@@ -39,6 +39,7 @@ with tab1:
             start_time = time.time()
             pdf_bytes = uploaded_pdf.getvalue()
             diag_size_mb = len(pdf_bytes) / (1024 * 1024)
+            base_name = uploaded_pdf.name.rsplit(".", 1)[0]
             
             pdf_doc = pdfium.PdfDocument(pdf_bytes)
             diag_pages = len(pdf_doc)
@@ -72,7 +73,7 @@ with tab1:
                     ]
                 )
 
-                # ఆప్షన్ 1: కస్టమ్ రేంజ్ (ఒక భాగం)
+                # ఆప్షన్ 1: కస్టమ్ రేంజ్
                 if split_mode == "1. కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)":
                     c1, c2 = st.columns(2)
                     with c1:
@@ -88,16 +89,17 @@ with tab1:
                         writer.write(out_buffer)
                         out_buffer.seek(0)
                         
+                        st.balloons()
                         st.download_button(
-                            label=f"📥 Download Pages_{start_p}_to_{end_p}.pdf",
+                            label=f"📥 Download {base_name}_Pages_{start_p}_to_{end_p}.pdf",
                             data=out_buffer,
-                            file_name=f"Doc_Pages_{start_p}_to_{end_p}.pdf",
+                            file_name=f"{base_name}_Pages_{start_p}_to_{end_p}.pdf",
                             mime="application/pdf"
                         )
 
-                # ఆప్షన్ 2: కస్టమ్ మల్టిపుల్ రేంజెస్ (కామాతో వేరు చేసి ఇవ్వడం)
+                # ఆప్షన్ 2: కస్టమ్ మల్టిపుల్ రేంజెస్
                 elif split_mode == "2. కస్టమ్ మల్టిపుల్ రేంజెస్ (కావలసిన భాగాలుగా)":
-                    st.caption("ఉదాహరణకు: **1-2, 3-5, 6-10** లేదా **1, 3, 5-8** అని కామాలతో ఇవ్వండి.")
+                    st.caption("ఉదాహరణకు: **1-2, 3-5, 6-10** లేదా **1, 3, 5-8** అని ఇవ్వండి.")
                     ranges_input = st.text_input("పేజీ రేంజ్‌లు టైప్ చేయండి:", value="1-2, 3-5")
 
                     if st.button("✂️ Split by Custom Ranges", key="btn_multi_range"):
@@ -121,20 +123,21 @@ with tab1:
                                         writer.write(p_buf)
                                         p_buf.seek(0)
                                         
-                                        file_title = f"Part_{idx+1}_Pages_{sp}_to_{ep}.pdf"
+                                        file_title = f"{base_name}_Part_{idx+1}_Pages_{sp}_to_{ep}.pdf"
                                         zip_file.writestr(file_title, p_buf.getvalue())
                                 except:
                                     pass
 
                         zip_buffer.seek(0)
+                        st.balloons()
                         st.download_button(
                             label="📥 Download All Parts (ZIP)",
                             data=zip_buffer,
-                            file_name="Custom_Split_PDFs.zip",
+                            file_name=f"{base_name}_Custom_Split.zip",
                             mime="application/zip"
                         )
 
-                # ఆప్షన్ 3: ఫిక్స్‌డ్ గ్రూప్స్ (ప్రతి N పేజీలకు)
+                # ఆప్షన్ 3: ఫిక్స్‌డ్ గ్రూప్స్
                 elif split_mode == "3. ఫిక్స్‌డ్ గ్రూప్స్ (ప్రతి N పేజీలకు ఒక PDF)":
                     chunk_size = st.number_input("ప్రతి PDFలో ఎన్ని పేజీలు ఉండాలి?", min_value=1, max_value=total_pages, value=2)
                     total_chunks = (total_pages + chunk_size - 1) // chunk_size
@@ -155,17 +158,18 @@ with tab1:
                                 writer.write(p_buf)
                                 p_buf.seek(0)
                                 
-                                zip_file.writestr(f"Group_Pages_{sp}_to_{ep}.pdf", p_buf.getvalue())
+                                zip_file.writestr(f"{base_name}_Pages_{sp}_to_{ep}.pdf", p_buf.getvalue())
 
                         zip_buffer.seek(0)
+                        st.balloons()
                         st.download_button(
                             label=f"📥 Download {total_chunks} PDF Files (ZIP)",
                             data=zip_buffer,
-                            file_name=f"Split_in_groups_of_{chunk_size}.zip",
+                            file_name=f"{base_name}_Groups_of_{chunk_size}.zip",
                             mime="application/zip"
                         )
 
-                # ఆప్షన్ 4: ప్రతి పేజీని విడివిడిగా (1 Page = 1 PDF)
+                # ఆప్షన్ 4: ప్రతి పేజీని విడివిడిగా
                 elif split_mode == "4. ప్రతి పేజీని విడివిడిగా (1 Page = 1 PDF)":
                     st.info(f"ఈ PDFలోని అన్ని **{total_pages}** పేజీలు విడివిడి PDFలుగా మారి ఒకే ZIP ఫైల్‌గా వస్తాయి.")
                     
@@ -180,13 +184,14 @@ with tab1:
                                 writer.write(p_buf)
                                 p_buf.seek(0)
                                 
-                                zip_file.writestr(f"Page_{i+1:03d}.pdf", p_buf.getvalue())
+                                zip_file.writestr(f"{base_name}_Page_{i+1:03d}.pdf", p_buf.getvalue())
 
                         zip_buffer.seek(0)
+                        st.balloons()
                         st.download_button(
                             label=f"📥 Download All {total_pages} Pages (ZIP)",
                             data=zip_buffer,
-                            file_name="All_Single_Pages.zip",
+                            file_name=f"{base_name}_All_Pages.zip",
                             mime="application/zip"
                         )
 
@@ -195,7 +200,6 @@ with tab1:
             diag_errors.append(str(e))
             st.error(f"ప్రాసెసింగ్ లోపం: {e}")
 
-    # డయాగ్నోస్టిక్స్ ప్యానెల్
     st.markdown("---")
     with st.expander("🛠️ సిస్టమ్ డయాగ్నోస్టిక్స్ (System Diagnostics)"):
         d_col1, d_col2, d_col3, d_col4 = st.columns(4)
@@ -244,6 +248,7 @@ with tab2:
             merger.write(merged_output)
             merged_output.seek(0)
 
+            st.balloons()
             st.success(f"విజయవంతంగా కలిసింది! మొత్తం పేజీలు: **{total_merged_pages}**")
             st.download_button(
                 label="📥 Download Merged PDF",
