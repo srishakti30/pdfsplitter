@@ -3,23 +3,24 @@ from pypdf import PdfReader
 import pypdfium2 as pdfium
 from langdetect import detect
 import io
-import time
 import pdf_engine as engine
 
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
-st.title("📄 DocuFlow Studio | All-in-One PDF Suite")
-st.caption("లైవ్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, లాక్ & అన్‌లాక్ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
+st.title("📄 DocuFlow Studio | Ultimate PDF Suite")
+st.caption("స్మార్ట్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, ఇమేజ్ కన్వర్టర్, పేజ్ డిలీట్/రీఆర్డర్, లాక్ & అన్‌లాక్.")
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "👁️ Live Visual Studio (Split, Rotate & Watermark)", 
-    "📑 PDF Merger (కలపడం)", 
-    "🔒 & 🔓 Lock / Unlock (పాస్‌వర్డ్ సెక్యూరిటీ)",
-    "🌐 Text Extractor (టెక్స్ట్ వేరు చేయడం)"
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "👁️ Live Visual Studio", 
+    "📑 PDF Merger", 
+    "🖼️ Image ↔ PDF Converter",
+    "🗑️ & 🔀 Delete / Reorder Pages",
+    "🔒 & 🔓 Lock / Unlock",
+    "🌐 Text Extractor"
 ])
 
 # -------------------------------------------------------------
-# TAB 1: లైవ్ విజువల్ స్టూడియో (Preview, Split, Rotate, Watermark)
+# TAB 1: Live Visual Studio (Split, Rotate, Watermark)
 # -------------------------------------------------------------
 with tab1:
     col_l, col_r = st.columns([1.2, 1])
@@ -36,18 +37,15 @@ with tab1:
 
         with col_r:
             st.success(f"డాక్యుమెంట్: **{u_pdf.name}** | మొత్తం పేజీలు: **{total_p}**")
-            
-            # పేజీ ఎంపిక
-            p_curr = st.number_input("ప్రస్తుతం చూస్తున్న పేజీ సంఖ్య (Select Page):", min_value=1, max_value=total_p, value=1, key="main_p_num")
+            p_curr = st.number_input("ప్రస్తుతం చూస్తున్న పేజీ సంఖ్య (Page Viewer):", min_value=1, max_value=total_p, value=1, key="main_p_num")
 
-            # 3 రకాల టూల్స్ ఎంపిక కోసం Sub-Tabs
             tool_choice = st.radio(
                 "మీరు ఏమి చేయాలనుకుంటున్నారు?",
                 ["✂️ Split (విడదీయడం)", "🔄 Rotate (పేజీలు తిప్పడం)", "💧 Watermark (ముద్ర వేయడం)"],
                 horizontal=True
             )
 
-            # ---------------- 1. SPLIT OPTIONS ----------------
+            # 1. SPLIT
             if tool_choice == "✂️ Split (విడదీయడం)":
                 st.write("---")
                 st.markdown("#### ✂️ PDF విభజన సెట్టింగ్స్")
@@ -88,7 +86,7 @@ with tab1:
                         st.balloons()
                         st.download_button("📥 Download All Pages (ZIP)", out, f"{base_name}_All_Pages.zip", "application/zip")
 
-            # ---------------- 2. ROTATE OPTIONS ----------------
+            # 2. ROTATE
             elif tool_choice == "🔄 Rotate (పేజీలు తిప్పడం)":
                 st.write("---")
                 st.markdown("#### 🔄 పేజీ రొటేషన్ సెట్టింగ్స్")
@@ -101,7 +99,7 @@ with tab1:
                     st.success("✅ పేజీలు విజయవంతంగా తిప్పబడ్డాయి!")
                     st.download_button(f"📥 Download Rotated_{base_name}.pdf", out, f"Rotated_{base_name}.pdf", "application/pdf")
 
-            # ---------------- 3. WATERMARK OPTIONS ----------------
+            # 3. WATERMARK
             elif tool_choice == "💧 Watermark (ముద్ర వేయడం)":
                 st.write("---")
                 st.markdown("#### 💧 వాటర్‌మార్క్ సెట్టింగ్స్")
@@ -138,10 +136,9 @@ with tab1:
                         st.success("✅ వాటర్‌మార్క్ విజయవంతంగా అప్లై చేయబడింది!")
                         st.download_button(f"📥 Download Watermarked_{base_name}.pdf", out, f"Watermarked_{base_name}.pdf", "application/pdf")
 
-        # ---------------- LIVE PREVIEW RENDERING (LEFT COLUMN) ----------------
+        # LIVE PREVIEW RENDERING
         with col_l:
             try:
-                # టూల్ ఆధారంగా ప్రివ్యూ ఎఫెక్ట్స్ లెక్కించడం
                 eff_angle = angle_choice if tool_choice == "🔄 Rotate (పేజీలు తిప్పడం)" else 0
                 eff_wm = (tool_choice == "💧 Watermark (ముద్ర వేయడం)")
                 eff_wm_txt = wm_text if eff_wm else ""
@@ -158,7 +155,9 @@ with tab1:
             except Exception as e:
                 st.error(f"ప్రివ్యూ రెండరింగ్ లోపం: {e}")
 
-# ---------------- TAB 2: Merger ----------------
+# -------------------------------------------------------------
+# TAB 2: PDF Merger
+# -------------------------------------------------------------
 with tab2:
     st.subheader("📑 PDF Merger (కలపడం)")
     st.caption("రెండు లేదా అంతకంటే ఎక్కువ PDF ఫైళ్లను అప్‌లోడ్ చేసి ఒకే ఫైల్‌గా కలపండి.")
@@ -169,19 +168,102 @@ with tab2:
         st.success(f"విజయవంతంగా కలిసింది! మొత్తం పేజీలు: {total}")
         st.download_button("📥 Download Merged PDF", out, "DocuFlow_Merged.pdf", "application/pdf")
 
-# ---------------- TAB 3: Lock / Unlock ----------------
+# -------------------------------------------------------------
+# TAB 3: Image ↔ PDF Converter (NEW)
+# -------------------------------------------------------------
 with tab3:
+    st.subheader("🖼️ Image ↔ PDF Converter")
+    st.caption("చిత్రాలను (Photos) PDFగా మార్చండి లేదా PDF లోని పేజీలను హై-క్వాలిటీ చిత్రాలుగా మార్చండి.")
+
+    conv_choice = st.radio("కన్వర్టర్ మోడ్ ఎంచుకోండి:", ["📷 Images to PDF (ఫోటోల నుండి PDF)", "📄 PDF to Images (PDF నుండి ఫోటోలు)"], horizontal=True)
+
+    if conv_choice == "📷 Images to PDF (ఫోటోల నుండి PDF)":
+        st.write("---")
+        img_files = st.file_uploader("ఫోటోలను ఎంచుకోండి (JPG, PNG):", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="img_to_pdf_u")
+        if img_files:
+            st.info(f"ఎంచుకున్న ఫోటోల సంఖ్య: **{len(img_files)}**")
+            if st.button("📄 Convert Images to Single PDF", key="btn_img_pdf"):
+                out_pdf = engine.convert_images_to_pdf(img_files)
+                st.balloons()
+                st.success("✅ విజయవంతంగా PDFగా మారింది!")
+                st.download_button("📥 Download Converted PDF", out_pdf, "Photos_Document.pdf", "application/pdf")
+
+    else:
+        st.write("---")
+        pdf_to_img_f = st.file_uploader("PDF ఫైల్‌ను అప్‌లోడ్ చేయండి:", type=["pdf"], key="pdf_to_img_u")
+        if pdf_to_img_f:
+            b_name = pdf_to_img_f.name.rsplit(".", 1)[0]
+            if st.button("📷 Convert PDF Pages to JPG Images", key="btn_pdf_img"):
+                zip_out, count = engine.convert_pdf_to_images_zip(pdf_to_img_f.getvalue(), b_name)
+                st.balloons()
+                st.success(f"✅ మొత్తం **{count}** పేజీలు JPG చిత్రాలుగా మారాయి!")
+                st.download_button(f"📥 Download All Images (ZIP)", zip_out, f"{b_name}_JPG_Images.zip", "application/zip")
+
+# -------------------------------------------------------------
+# TAB 4: Delete & Reorder Pages (NEW)
+# -------------------------------------------------------------
+with tab4:
+    st.subheader("🗑️ & 🔀 Delete or Reorder Pages")
+    st.caption("అనవసరమైన పేజీలను తొలగించండి లేదా పేజీల క్రమాన్ని మార్చండి.")
+
+    del_file = st.file_uploader("PDF ఫైల్‌ను అప్‌లోడ్ చేయండి:", type=["pdf"], key="del_reorder_u")
+    if del_file:
+        del_bytes = del_file.getvalue()
+        b_name = del_file.name.rsplit(".", 1)[0]
+        r_del = PdfReader(io.BytesIO(del_bytes))
+        t_del_pages = len(r_del.pages)
+        st.info(f"మొత్తం పేజీలు: **{t_del_pages}**")
+
+        page_action = st.radio("ఏమి చేయాలనుకుంటున్నారు?", ["🗑️ పేజీలను తొలగించడం (Delete Pages)", "🔀 వరుస క్రమం మార్చడం (Reorder Pages)"], horizontal=True)
+
+        if page_action == "🗑️ పేజీలను తొలగించడం (Delete Pages)":
+            st.write("---")
+            st.caption("తొలగించాల్సిన పేజీ నంబర్లు నమోదు చేయండి (ఉదా: **2, 5, 8-10**):")
+            del_input = st.text_input("డిలీట్ చేయాల్సిన పేజీలు:", value="2", key="del_pages_txt")
+
+            if st.button("🗑️ Delete Pages & Generate PDF", key="btn_do_delete"):
+                del_set = engine.parse_page_numbers(del_input, t_del_pages)
+                if not del_set:
+                    st.warning("దయచేసి సరైన పేజీ నంబర్లు ఇవ్వండి.")
+                elif len(del_set) >= t_del_pages:
+                    st.error("అన్ని పేజీలను తొలగించలేరు. కనీసం ఒక పేజీ ఉండాలి.")
+                else:
+                    out, kept = engine.delete_pdf_pages(del_bytes, del_set)
+                    st.balloons()
+                    st.success(f"✅ పేజీలు తొలగించబడ్డాయి! మిగిలిన పేజీలు: **{kept}**")
+                    st.download_button(f"📥 Download Clean_{b_name}.pdf", out, f"Clean_{b_name}.pdf", "application/pdf")
+
+        else:
+            st.write("---")
+            st.caption(f"కొత్త వరుస క్రమం ఇవ్వండి (1 నుండి {t_del_pages} వరకు గల నంబర్లతో):")
+            default_order = ", ".join(str(i) for i in range(1, t_del_pages + 1))
+            order_input = st.text_input("కొత్త ఆర్డర్ (ఉదా: 3, 1, 2...):", value=default_order, key="reorder_txt")
+
+            if st.button("🔀 Reorder & Save PDF", key="btn_do_reorder"):
+                try:
+                    new_order = [int(x.strip()) for x in order_input.split(",") if x.strip()]
+                    out = engine.reorder_pdf_pages(del_bytes, new_order)
+                    st.balloons()
+                    st.success("✅ పేజీల క్రమం విజయవంతంగా మార్చబడింది!")
+                    st.download_button(f"📥 Download Reordered_{b_name}.pdf", out, f"Reordered_{b_name}.pdf", "application/pdf")
+                except Exception as e:
+                    st.error(f"ఆర్డర్ లోపం: {e}")
+
+# -------------------------------------------------------------
+# TAB 5: Lock / Unlock
+# -------------------------------------------------------------
+with tab5:
     st.subheader("🔒 & 🔓 PDF Security (లాక్ & అన్‌లాక్)")
-    sec_act = st.radio("ఆప్షన్ ఎంచుకోండి:", ["🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)", "🔓 పాస్‌వర్డ్ తీసివేయడం (Unlock PDF)"], horizontal=True, key="sec_act_tab3")
+    sec_act = st.radio("ఆప్షన్ ఎంచుకోండి:", ["🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)", "🔓 పాస్‌వర్డ్ తీసివేయడం (Unlock PDF)"], horizontal=True, key="sec_act_tab5")
     
     if sec_act == "🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)":
-        l_f = st.file_uploader("లాక్ చేయాల్సిన PDF:", type=["pdf"], key="l_u_tab3")
+        l_f = st.file_uploader("లాక్ చేయాల్సిన PDF:", type=["pdf"], key="l_u_tab5")
         if l_f:
             f_b = l_f.name.rsplit(".", 1)[0]
             p1, p2 = st.columns(2)
-            pwd1 = p1.text_input("పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="p1_tab3")
-            pwd2 = p2.text_input("పాస్‌వర్డ్‌ను ధృవీకరించండి:", type="password", key="p2_tab3")
-            if st.button("🔒 Set Password", key="btn_lock_tab3"):
+            pwd1 = p1.text_input("పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="p1_tab5")
+            pwd2 = p2.text_input("పాస్‌వర్డ్‌ను ధృవీకరించండి:", type="password", key="p2_tab5")
+            if st.button("🔒 Set Password", key="btn_lock_tab5"):
                 if pwd1 and pwd1 == pwd2:
                     out = engine.lock_pdf(l_f, pwd1)
                     st.balloons()
@@ -190,11 +272,11 @@ with tab3:
                 else:
                     st.error("రెండు పాస్‌వర్డ్‌లు సరిపోలలేదు.")
     else:
-        u_f = st.file_uploader("పాస్‌వర్డ్ ఉన్న PDF:", type=["pdf"], key="u_u_tab3")
+        u_f = st.file_uploader("పాస్‌వర్డ్ ఉన్న PDF:", type=["pdf"], key="u_u_tab5")
         if u_f:
             f_b = u_f.name.rsplit(".", 1)[0]
-            cur_pwd = st.text_input("ప్రస్తుత పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="u_p_tab3")
-            if st.button("🔓 Unlock PDF", key="btn_unlock_tab3") and cur_pwd:
+            cur_pwd = st.text_input("ప్రస్తుత పాస్‌వర్డ్ నమోదు చేయండి:", type="password", key="u_p_tab5")
+            if st.button("🔓 Unlock PDF", key="btn_unlock_tab5") and cur_pwd:
                 out, status = engine.unlock_pdf(u_f, cur_pwd)
                 if status == "SUCCESS":
                     st.balloons()
@@ -205,10 +287,12 @@ with tab3:
                 else:
                     st.info("ఈ PDFకి ఎలాంటి పాస్‌వర్డ్ లేదు.")
 
-# ---------------- TAB 4: Multi-Lang Extractor ----------------
-with tab4:
+# -------------------------------------------------------------
+# TAB 6: Multi-Lang Extractor
+# -------------------------------------------------------------
+with tab6:
     st.subheader("🌐 Multi-Language Text Extractor")
-    lang_f = st.file_uploader("PDF అప్‌లోడ్ చేయండి:", type=["pdf"], key="lang_u_tab4")
+    lang_f = st.file_uploader("PDF అప్‌లోడ్ చేయండి:", type=["pdf"], key="lang_u_tab6")
     if lang_f:
         r = PdfReader(lang_f)
         txt = "\n\n".join([p.extract_text() or "" for p in r.pages])
