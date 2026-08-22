@@ -8,11 +8,11 @@ import pdf_engine as engine
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Ultimate PDF Suite")
-st.caption("స్మార్ట్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, ఇమేజ్ కన్వర్టర్, పేజ్ డిలీట్/రీఆర్డర్, లాక్ & అన్‌లాక్.")
+st.caption("స్మార్ట్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, జిప్ ప్యాకర్, ఇమేజ్ కన్వర్టర్, పేజ్ డిలీట్/రీఆర్డర్, లాక్ & అన్‌లాక్.")
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "👁️ Live Visual Studio", 
-    "📑 PDF Merger", 
+    "📑 PDF Merger & ZIP Packer", 
     "🖼️ Image ↔ PDF Converter",
     "🗑️ & 🔀 Delete / Reorder Pages",
     "🔒 & 🔓 Lock / Unlock",
@@ -156,20 +156,35 @@ with tab1:
                 st.error(f"ప్రివ్యూ రెండరింగ్ లోపం: {e}")
 
 # -------------------------------------------------------------
-# TAB 2: PDF Merger
+# TAB 2: PDF Merger & ZIP Packer (DUAL ACTION)
 # -------------------------------------------------------------
 with tab2:
-    st.subheader("📑 PDF Merger (కలపడం)")
-    st.caption("రెండు లేదా అంతకంటే ఎక్కువ PDF ఫైళ్లను అప్‌లోడ్ చేసి ఒకే ఫైల్‌గా కలపండి.")
-    m_files = st.file_uploader("కలపాల్సిన PDF ఫైళ్లు:", type=["pdf"], accept_multiple_files=True, key="m_u_tab2")
-    if m_files and st.button("🔗 Merge All PDFs", key="btn_merge_tab2"):
-        out, total = engine.merge_pdf_files(m_files)
-        st.balloons()
-        st.success(f"విజయవంతంగా కలిసింది! మొత్తం పేజీలు: {total}")
-        st.download_button("📥 Download Merged PDF", out, "DocuFlow_Merged.pdf", "application/pdf")
+    st.subheader("📑 PDF Merger & ZIP Package")
+    st.caption("బహుళ PDF ఫైళ్లను అప్‌లోడ్ చేసి ఒకే ఫైల్‌గా కలపండి లేదా విడివిడిగా ఒకే సురక్షిత ZIP ఫైల్‌గా ప్యాక్ చేయండి.")
+    
+    m_files = st.file_uploader("కలపాల్సిన లేదా ప్యాక్ చేయాల్సిన PDF ఫైళ్లు:", type=["pdf"], accept_multiple_files=True, key="m_u_tab2")
+    if m_files:
+        st.info(f"మొత్తం ఎంచుకున్న ఫైళ్లు: **{len(m_files)}**")
+        for idx, f in enumerate(m_files):
+            st.write(f"{idx + 1}. 📄 {f.name} ({len(f.getvalue()) / 1024:.1f} KB)")
+
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            if st.button("🔗 1. Merge into Single PDF", key="btn_merge_single_tab2"):
+                out_m, total_pages_m = engine.merge_pdf_files(m_files)
+                st.balloons()
+                st.success(f"✅ అన్ని ఫైళ్లు ఒకే డాక్యుమెంట్‌గా మారాయి! మొత్తం పేజీలు: **{total_pages_m}**")
+                st.download_button("📥 Download Merged PDF", out_m, "DocuFlow_Merged.pdf", "application/pdf")
+
+        with col_m2:
+            if st.button("📦 2. Package into Single ZIP Archive", key="btn_pack_zip_tab2"):
+                zip_all_out = engine.zip_multiple_pdf_files(m_files)
+                st.balloons()
+                st.success(f"✅ మొత్తం **{len(m_files)}** ఫైళ్లు ఒకే ZIP ఆర్కైవ్‌గా ప్యాక్ అయ్యాయి!")
+                st.download_button("📥 Download All PDFs ZIP", zip_all_out, "DocuFlow_PDF_Archive.zip", "application/zip")
 
 # -------------------------------------------------------------
-# TAB 3: Image ↔ PDF Converter (NEW)
+# TAB 3: Image ↔ PDF Converter
 # -------------------------------------------------------------
 with tab3:
     st.subheader("🖼️ Image ↔ PDF Converter")
@@ -200,7 +215,7 @@ with tab3:
                 st.download_button(f"📥 Download All Images (ZIP)", zip_out, f"{b_name}_JPG_Images.zip", "application/zip")
 
 # -------------------------------------------------------------
-# TAB 4: Delete & Reorder Pages (NEW)
+# TAB 4: Delete & Reorder Pages
 # -------------------------------------------------------------
 with tab4:
     st.subheader("🗑️ & 🔀 Delete or Reorder Pages")
