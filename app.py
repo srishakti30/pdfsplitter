@@ -9,13 +9,13 @@ import media_engine as media_eng
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Ultimate PDF Suite")
-st.caption("స్మార్ట్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, జిప్ ప్యాకర్, ఇమేజ్ కన్వర్టర్, పేజ్ డిలీట్/రీఆర్డర్, లాక్ & అన్‌లాక్, వీడియో/GIF టు PDF.")
+st.caption("స్మార్ట్ వ్యూయర్, స్ప్లిట్టర్, రొటేటర్, వాటర్‌మార్క్, మెర్జర్, యూనివర్సల్ జిప్, ఇమేజ్ కన్వర్టర్, పేజ్ డిలీట్/రీఆర్డర్, లాక్ & అన్‌లాక్, మీడియా ↔ PDF.")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "👁️ Live Visual Studio", 
     "📑 PDF Merger & ZIP Packer", 
     "🖼️ Image ↔ PDF",
-    "🎬 Video / GIF టు PDF",
+    "🎬 Media ↔ PDF (Video/GIF)",
     "🗑️ & 🔀 Delete / Reorder",
     "🔒 & 🔓 Lock / Unlock",
     "🌐 Text Extractor"
@@ -179,7 +179,7 @@ with tab2:
                     st.success(f"✅ అన్ని PDFలు ఒకే డాక్యుమెంట్‌గా మారాయి! మొత్తం పేజీలు: **{total_pages_m}**")
                     st.download_button("📥 Download Merged PDF", out_m, "DocuFlow_Merged.pdf", "application/pdf")
                 except Exception as e:
-                    st.error(f"మెర్జ్ చేయడంలో లోపం: {e}")
+                    st.error(f"మెర్జ్ చేయడంలో లోపం (అన్ని ఫైళ్లు PDFలేనా అనేది నిర్ధారించుకోండి): {e}")
 
         with col_m2:
             if st.button("📦 2. Package All Files into ZIP (అన్ని రకాల ఫైల్స్)", key="btn_pack_zip_tab2"):
@@ -220,47 +220,79 @@ with tab3:
                 st.download_button(f"📥 Download All Images (ZIP)", zip_out, f"{b_name}_JPG_Images.zip", "application/zip")
 
 # -------------------------------------------------------------
-# TAB 4: Video / GIF to PDF (NEW MICRO-MODULE)
+# TAB 4: Video / GIF ↔ PDF Converter (Two-Way)
 # -------------------------------------------------------------
 with tab4:
-    st.subheader("🎬 Video / Animated GIF to PDF Storyboard")
-    st.caption("వీడియోలు మరియు GIF యానిమేషన్ల నుండి ముఖ్యమైన దృశ్యాలను (Frames) సంగ్రహించి PDF డాక్యుమెంట్‌గా మార్చండి.")
-    st.info("🛡️ **సురక్షిత పరిమితి:** గరిష్టంగా **50 MB** లోపు సైజు గల ఫైళ్లు మాత్రమే అనుమతించబడతాయి.")
+    st.subheader("🎬 Media ↔ PDF Suite (Video & GIF)")
+    st.caption("వీడియో/GIF లను PDFగా మార్చండి లేదా PDF ని యానిమేటెడ్ GIF / MP4 వీడియోగా మార్చండి.")
 
-    media_f = st.file_uploader("వీడియో లేదా GIF ఫైల్‌ను ఎంచుకోండి (MP4, MOV, MKV, GIF):", type=["mp4", "mov", "avi", "mkv", "gif"], key="media_to_pdf_u")
+    media_direction = st.radio(
+        "కన్వర్షన్ రకాన్ని ఎంచుకోండి:",
+        ["🎬 Video/GIF టు PDF (Extract Storyboard)", "🔄 PDF టు Animated GIF / Video (Slideshow)"],
+        horizontal=True
+    )
 
-    if media_f:
-        file_size_mb = len(media_f.getvalue()) / (1024 * 1024)
-        m_base = media_f.name.rsplit(".", 1)[0]
-        ext = media_f.name.rsplit(".", 1)[-1].lower()
+    if media_direction == "🎬 Video/GIF టు PDF (Extract Storyboard)":
+        st.write("---")
+        st.info("🛡️ **సురక్షిత పరిమితి:** గరిష్టంగా **50 MB** లోపు సైజు గల ఫైళ్లు మాత్రమే అనుమతించబడతాయి.")
+        media_f = st.file_uploader("వీడియో లేదా GIF ఫైల్‌ను ఎంచుకోండి (MP4, MOV, MKV, GIF):", type=["mp4", "mov", "avi", "mkv", "gif"], key="media_to_pdf_u")
 
-        if file_size_mb > 50.0:
-            st.error(f"❌ ఫైల్ సైజు **{file_size_mb:.1f} MB** ఉంది. దయచేసి 50 MB కంటే తక్కువ ఉన్న ఫైల్‌ను అప్‌లోడ్ చేయండి.")
-        else:
-            st.success(f"ఫైల్: **{media_f.name}** ({file_size_mb:.2f} MB)")
+        if media_f:
+            file_size_mb = len(media_f.getvalue()) / (1024 * 1024)
+            m_base = media_f.name.rsplit(".", 1)[0]
+            ext = media_f.name.rsplit(".", 1)[-1].lower()
 
-            if ext == "gif":
-                f_skip = st.slider("ప్రతి ఎన్ని ఫ్రేమ్‌లకు ఒక పేజీ కావాలి?", 1, 10, 1, key="gif_skip_slider")
-                if st.button("🎬 Convert GIF to PDF", key="btn_gif_convert"):
-                    with st.spinner("GIF ప్రాసెస్ అవుతోంది..."):
-                        out_pdf, f_count = media_eng.process_gif_to_pdf(media_f, f_skip)
-                        st.balloons()
-                        st.success(f"✅ మొత్తం **{f_count}** ఫ్రేమ్‌లు PDF పేజీలుగా మారాయి!")
-                        st.download_button(f"📥 Download {m_base}_Storyboard.pdf", out_pdf, f"{m_base}_Storyboard.pdf", "application/pdf")
-
+            if file_size_mb > 50.0:
+                st.error(f"❌ ఫైల్ సైజు **{file_size_mb:.1f} MB** ఉంది. దయచేసి 50 MB కంటే తక్కువ ఉన్న ఫైల్‌ను అప్‌లోడ్ చేయండి.")
             else:
-                c_v1, c_v2 = st.columns(2)
-                with c_v1:
-                    interval = st.selectbox("ఎంత సమయానికి ఒక ఫోటో/ఫ్రేమ్ కావాలి?", [0.5, 1.0, 2.0, 5.0, 10.0], index=1, format_func=lambda x: f"ప్రతి {x} సెకన్లకు (Every {x}s)")
-                with c_v2:
-                    max_f = st.number_input("గరిష్ట పేజీల పరిమితి (Max Pages):", min_value=10, max_value=200, value=100)
+                st.success(f"ఫైల్: **{media_f.name}** ({file_size_mb:.2f} MB)")
 
-                if st.button("🎬 Convert Video to Storyboard PDF", key="btn_vid_convert"):
-                    with st.spinner("వీడియో దృశ్యాలు విశ్లేషించబడుతున్నాయి..."):
-                        out_pdf, f_count, dur = media_eng.process_video_to_pdf(media_f, interval, max_f)
+                if ext == "gif":
+                    f_skip = st.slider("ప్రతి ఎన్ని ఫ్రేమ్‌లకు ఒక పేజీ కావాలి?", 1, 10, 1, key="gif_skip_slider")
+                    if st.button("🎬 Convert GIF to PDF", key="btn_gif_convert"):
+                        with st.spinner("GIF ప్రాసెస్ అవుతోంది..."):
+                            out_pdf, f_count = media_eng.process_gif_to_pdf(media_f, f_skip)
+                            st.balloons()
+                            st.success(f"✅ మొత్తం **{f_count}** ఫ్రేమ్‌లు PDF పేజీలుగా మారాయి!")
+                            st.download_button(f"📥 Download {m_base}_Storyboard.pdf", out_pdf, f"{m_base}_Storyboard.pdf", "application/pdf")
+
+                else:
+                    c_v1, c_v2 = st.columns(2)
+                    with c_v1:
+                        interval = st.selectbox("ఎంత సమయానికి ఒక ఫోటో/ఫ్రేమ్ కావాలి?", [0.5, 1.0, 2.0, 5.0, 10.0], index=1, format_func=lambda x: f"ప్రతి {x} సెకన్లకు (Every {x}s)")
+                    with c_v2:
+                        max_f = st.number_input("గరిష్ట పేజీల పరిమితి (Max Pages):", min_value=10, max_value=200, value=100)
+
+                    if st.button("🎬 Convert Video to Storyboard PDF", key="btn_vid_convert"):
+                        with st.spinner("వీడియో దృశ్యాలు విశ్లేషించబడుతున్నాయి..."):
+                            out_pdf, f_count, dur = media_eng.process_video_to_pdf(media_f, interval, max_f)
+                            st.balloons()
+                            st.success(f"✅ వీడియో నిడివి: **{dur:.1f} సెకన్లు** | సేకరించిన పేజీలు: **{f_count}**")
+                            st.download_button(f"📥 Download {m_base}_Video_Notes.pdf", out_pdf, f"{m_base}_Video_Notes.pdf", "application/pdf")
+
+    else:
+        st.write("---")
+        pdf_f = st.file_uploader("GIF లేదా వీడియోగా మార్చాల్సిన PDF ఫైల్‌ను అప్‌లోడ్ చేయండి:", type=["pdf"], key="pdf_to_media_u")
+        if pdf_f:
+            pdf_bname = pdf_f.name.rsplit(".", 1)[0]
+            sec_per_p = st.slider("ప్రతి పేజీ ఎన్ని సెకన్ల పాటు కనిపించాలి?", 0.5, 5.0, 1.5, 0.5, key="pdf_media_dur_slider")
+            
+            c_m1, c_m2 = st.columns(2)
+            with c_m1:
+                if st.button("🎞️ 1. Convert PDF to Animated GIF", key="btn_pdf_to_gif"):
+                    with st.spinner("Animated GIF తయారవుతోంది..."):
+                        gif_out, p_cnt = media_eng.convert_pdf_to_animated_gif(pdf_f.getvalue(), sec_per_p)
                         st.balloons()
-                        st.success(f"✅ వీడియో నిడివి: **{dur:.1f} సెకన్లు** | సేకరించిన పేజీలు: **{f_count}**")
-                        st.download_button(f"📥 Download {m_base}_Video_Notes.pdf", out_pdf, f"{m_base}_Video_Notes.pdf", "application/pdf")
+                        st.success(f"✅ మొత్తం **{p_cnt}** పేజీలతో యానిమేటెడ్ GIF సిద్ధమైంది!")
+                        st.download_button(f"📥 Download {pdf_bname}.gif", gif_out, f"{pdf_bname}.gif", "image/gif")
+
+            with c_m2:
+                if st.button("🎥 2. Convert PDF to MP4 Video", key="btn_pdf_to_mp4"):
+                    with st.spinner("MP4 స్లైడ్‌షో వీడియో రూపొందుతోంది..."):
+                        mp4_out, p_cnt = media_eng.convert_pdf_to_mp4_video(pdf_f.getvalue(), sec_per_p)
+                        st.balloons()
+                        st.success(f"✅ మొత్తం **{p_cnt}** పేజీలతో MP4 వీడియో సిద్ధమైంది!")
+                        st.download_button(f"📥 Download {pdf_bname}_Video.mp4", mp4_out, f"{pdf_bname}_Video.mp4", "video/mp4")
 
 # -------------------------------------------------------------
 # TAB 5: Delete & Reorder Pages
