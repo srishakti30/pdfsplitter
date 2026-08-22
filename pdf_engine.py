@@ -101,13 +101,13 @@ def unlock_pdf(file_obj, password):
     buf.seek(0)
     return buf, "SUCCESS"
 
-def rotate_pdf_pages(file_obj, mode, target_page_1based, angle):
-    reader = PdfReader(file_obj)
+def rotate_pdf_pages(file_bytes, mode, target_page_1based, angle):
+    reader = PdfReader(io.BytesIO(file_bytes))
     writer = PdfWriter()
     for idx, page in enumerate(reader.pages):
         if mode == "అన్ని పేజీలు (All Pages)":
             page.rotate(angle)
-        elif mode == "నిర్దిష్ట పేజీ మాత్రమే (Single Page)":
+        elif mode == "ఈ పేజీ మాత్రమే (Current Page)":
             if (idx + 1) == target_page_1based:
                 page.rotate(angle)
         writer.add_page(page)
@@ -169,8 +169,8 @@ def create_wm_layer(width, height, text, position, opacity, font_size):
     wm_buf.seek(0)
     return wm_buf
 
-def apply_advanced_watermark(file_obj, text, target_pages_set, position, opacity=0.2, font_size=36):
-    reader = PdfReader(file_obj)
+def apply_advanced_watermark(file_bytes, text, target_pages_set, position, opacity=0.2, font_size=36):
+    reader = PdfReader(io.BytesIO(file_bytes))
     writer = PdfWriter()
     
     for idx, page in enumerate(reader.pages):
@@ -190,21 +190,23 @@ def apply_advanced_watermark(file_obj, text, target_pages_set, position, opacity
     buf.seek(0)
     return buf
 
-def generate_watermark_preview_page(file_bytes, page_1based, text, position, opacity, font_size):
+def generate_interactive_preview_page(file_bytes, page_1based, angle, wm_enabled, wm_text, wm_pos, opacity, font_size):
     reader = PdfReader(io.BytesIO(file_bytes))
     target_idx = max(0, min(page_1based - 1, len(reader.pages) - 1))
     page = reader.pages[target_idx]
     
-    box = page.mediabox
-    width, height = float(box.width), float(box.height)
-    
-    wm_buf = create_wm_layer(width, height, text, position, opacity, font_size)
-    wm_reader = PdfReader(wm_buf)
-    
+    if angle != 0:
+        page.rotate(angle)
+        
+    if wm_enabled and wm_text.strip():
+        box = page.mediabox
+        width, height = float(box.width), float(box.height)
+        wm_buf = create_wm_layer(width, height, wm_text, wm_pos, opacity, font_size)
+        wm_reader = PdfReader(wm_buf)
+        page.merge_page(wm_reader.pages[0])
+        
     writer = PdfWriter()
-    page.merge_page(wm_reader.pages[0])
     writer.add_page(page)
-    
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
