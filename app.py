@@ -9,12 +9,16 @@ import time
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Smart PDF Tools")
-st.caption("PDFని పేజీల వారీగా ఇమేజ్ రూపంలో చూస్తూ కట్ చేయడం మరియు డయాగ్నోస్టిక్స్.")
+st.caption("PDF వ్యూయర్, స్ప్లిట్టర్, మెర్జర్ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
 
-tab1, tab2 = st.tabs(["👁️ & ✂️ PDF Preview & Splitter", "🌐 Multi-Language Text Extractor"])
+tab1, tab2, tab3 = st.tabs([
+    "👁️ & ✂️ PDF Preview & Splitter", 
+    "📑 PDF Merger (కలపడం)", 
+    "🌐 Multi-Language Text Extractor"
+])
 
 # -------------------------------------------------------------
-# TAB 1: PDF రెండరింగ్ & స్ప్లిట్టింగ్
+# TAB 1: PDF ప్రివ్యూ & స్ప్లిట్టింగ్
 # -------------------------------------------------------------
 with tab1:
     col_left, col_right = st.columns([1.2, 1])
@@ -23,7 +27,6 @@ with tab1:
         st.subheader("👁️ PDF Live Preview")
         uploaded_pdf = st.file_uploader("PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="splitter_upload")
 
-    # డయాగ్నోస్టిక్ డేటా ట్రాకింగ్
     diag_status = "No File Uploaded"
     diag_pages = 0
     diag_size_mb = 0.0
@@ -36,7 +39,6 @@ with tab1:
             pdf_bytes = uploaded_pdf.getvalue()
             diag_size_mb = len(pdf_bytes) / (1024 * 1024)
             
-            # PyPDFium2 ద్వారా PDF ఓపెన్ చేయడం
             pdf_doc = pdfium.PdfDocument(pdf_bytes)
             diag_pages = len(pdf_doc)
             diag_status = "File Loaded Successfully"
@@ -45,12 +47,10 @@ with tab1:
             total_pages = len(reader.pages)
 
             with col_left:
-                # పేజీ నావిగేషన్ కంట్రోలర్
                 page_col1, page_col2 = st.columns([2, 1])
                 with page_col1:
                     preview_page = st.number_input("చూడాల్సిన పేజీ సంఖ్య (Page Viewer):", min_value=1, max_value=total_pages, value=1)
                 
-                # ఎంచుకున్న పేజీని ఇమేజ్‌గా మార్చి చూపించడం
                 page = pdf_doc.get_page(preview_page - 1)
                 pil_image = page.render(scale=2.0).to_pil()
                 diag_render_time = time.time() - start_time
@@ -66,7 +66,6 @@ with tab1:
                     ["కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)", "2 భాగాలుగా విడదీయడం", "3 భాగాలుగా విడదీయడం"]
                 )
 
-                # ఆప్షన్ 1: కస్టమ్ రేంజ్
                 if split_mode == "కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)":
                     c1, c2 = st.columns(2)
                     with c1:
@@ -89,7 +88,6 @@ with tab1:
                             mime="application/pdf"
                         )
 
-                # ఆప్షన్ 2: 2 భాగాలు
                 elif split_mode == "2 భాగాలుగా విడదీయడం":
                     split_point = st.slider("మొదటి భాగం ముగింపు పేజీ", min_value=1, max_value=total_pages - 1, value=total_pages // 2 if total_pages > 1 else 1)
                     st.write(f"👉 **పార్ట్ 1:** 1-{split_point} | **పార్ట్ 2:** {split_point + 1}-{total_pages}")
@@ -108,7 +106,6 @@ with tab1:
                         st.download_button(f"📥 Download Part 1 (1-{split_point})", data=b1, file_name="Part_1.pdf", mime="application/pdf")
                         st.download_button(f"📥 Download Part 2 ({split_point+1}-{total_pages})", data=b2, file_name="Part_2.pdf", mime="application/pdf")
 
-                # ఆప్షన్ 3: 3 భాగాలు
                 elif split_mode == "3 భాగాలుగా విడదీయడం":
                     if total_pages < 3:
                         st.warning("ఈ PDFలో 3 కంటే తక్కువ పేజీలు ఉన్నాయి.")
@@ -144,12 +141,11 @@ with tab1:
             diag_errors.append(str(e))
             st.error(f"ప్రాసెసింగ్ లోపం: {e}")
 
-    # --- డయాగ్నోస్టిక్స్ ప్యానెల్ (System Diagnostics) ---
+    # డయాగ్నోస్టిక్స్ ప్యానెల్
     st.markdown("---")
-    with st.expander("🛠️ సిస్టమ్ డయాగ్నోస్టిక్స్ & హెల్త్ స్టేటస్ (System Diagnostics)"):
-        st.write("ఈ ప్యానెల్ అప్‌లోడ్ చేసిన ఫైల్ స్థితిని మరియు సిస్టమ్ రెండరింగ్‌ను పర్యవేక్షిస్తుంది:")
+    with st.expander("🛠️ సిస్టమ్ డయాగ్నోస్టిక్స్ (System Diagnostics)"):
         d_col1, d_col2, d_col3, d_col4 = st.columns(4)
-        d_col1.metric("ఫైల్ స్థితి (Status)", diag_status)
+        d_col1.metric("ఫైల్ స్థితి", diag_status)
         d_col2.metric("మొత్తం పేజీలు", diag_pages)
         d_col3.metric("ఫైల్ సైజు", f"{diag_size_mb:.2f} MB")
         d_col4.metric("రెండర్ సమయం", f"{diag_render_time:.2f} సెకన్లు")
@@ -159,12 +155,55 @@ with tab1:
             for err in diag_errors:
                 st.code(err)
         else:
-            st.success("✅ పిడిఎఫ్ వ్యూయర్ ఇంజిన్ సాధారణంగా పనిచేస్తోంది (No Engine Errors).")
+            st.success("✅ పిడిఎఫ్ ఇంజిన్ సాధారణంగా పనిచేస్తోంది.")
 
 # -------------------------------------------------------------
-# TAB 2: టెక్స్ట్ ఎక్స్‌ట్రాక్టర్
+# TAB 2: PDF మెర్జర్ (బహుళ ఫైళ్లను కలపడం)
 # -------------------------------------------------------------
 with tab2:
+    st.subheader("📑 PDF Merger (కలపడం)")
+    st.caption("రెండు లేదా అంతకంటే ఎక్కువ PDF ఫైళ్లను అప్‌లోడ్ చేసి ఒకే ఫైల్‌గా కలపండి.")
+
+    merge_files = st.file_uploader(
+        "కలపాల్సిన PDF ఫైళ్లను ఎంచుకోండి (ఒకేసారి ఎన్ని ఫైళ్లయినా ఎంచుకోవచ్చు)", 
+        type=["pdf"], 
+        accept_multiple_files=True, 
+        key="merge_upload"
+    )
+
+    if merge_files:
+        st.write(f"మొత్తం ఎంచుకున్న ఫైళ్లు: **{len(merge_files)}**")
+        
+        # ఎంచుకున్న ఫైళ్ల జాబితా చూపించడం
+        for idx, f in enumerate(merge_files):
+            st.write(f"{idx + 1}. 📄 {f.name} ({len(f.getvalue()) / 1024:.1f} KB)")
+
+        if st.button("🔗 Merge All PDFs", key="btn_merge_action"):
+            merger = PdfWriter()
+            total_merged_pages = 0
+            
+            for f in merge_files:
+                r = PdfReader(f)
+                total_merged_pages += len(r.pages)
+                for page in r.pages:
+                    merger.add_page(page)
+
+            merged_output = io.BytesIO()
+            merger.write(merged_output)
+            merged_output.seek(0)
+
+            st.success(f"విజయవంతంగా కలిసింది! మొత్తం పేజీలు: **{total_merged_pages}**")
+            st.download_button(
+                label="📥 Download Merged PDF",
+                data=merged_output,
+                file_name="DocuFlow_Merged.pdf",
+                mime="application/pdf"
+            )
+
+# -------------------------------------------------------------
+# TAB 3: మల్టీ-లాంగ్వేజ్ టెక్స్ట్ ఎక్స్‌ట్రాక్టర్
+# -------------------------------------------------------------
+with tab3:
     st.subheader("🌐 Multi-Language Text Extractor")
     uploaded_lang_file = st.file_uploader("PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="lang_upload")
 
