@@ -134,6 +134,41 @@ def parse_page_numbers(input_str, total_pages):
             pass
     return target_pages
 
+def create_wm_layer(width, height, text, position, opacity, font_size):
+    wm_buf = io.BytesIO()
+    c = canvas.Canvas(wm_buf, pagesize=(width, height))
+    c.setFont("Helvetica-Bold", font_size)
+    c.setFillColor(Color(0.4, 0.4, 0.4, alpha=opacity))
+    c.saveState()
+    
+    margin_x = 40
+    margin_y = 40
+    
+    if position == "Center Diagonal (మధ్యలో - 45° వాలుగా)":
+        c.translate(width / 2.0, height / 2.0)
+        c.rotate(45)
+        c.drawCentredString(0, 0, text)
+    elif position == "Center Straight (మధ్యలో - నిలువు/అడ్డం 0°)":
+        c.translate(width / 2.0, height / 2.0)
+        c.drawCentredString(0, 0, text)
+    elif position == "Top-Left (ఎగువ ఎడమ)":
+        c.drawString(margin_x, height - margin_y - font_size, text)
+    elif position == "Top-Right (ఎగువ కుడి)":
+        c.drawRightString(width - margin_x, height - margin_y - font_size, text)
+    elif position == "Bottom-Left (దిగువ ఎడమ)":
+        c.drawString(margin_x, margin_y, text)
+    elif position == "Bottom-Right (దిగువ కుడి)":
+        c.drawRightString(width - margin_x, margin_y, text)
+    else:
+        c.translate(width / 2.0, height / 2.0)
+        c.rotate(45)
+        c.drawCentredString(0, 0, text)
+
+    c.restoreState()
+    c.save()
+    wm_buf.seek(0)
+    return wm_buf
+
 def apply_advanced_watermark(file_obj, text, target_pages_set, position, opacity=0.2, font_size=36):
     reader = PdfReader(file_obj)
     writer = PdfWriter()
@@ -141,44 +176,10 @@ def apply_advanced_watermark(file_obj, text, target_pages_set, position, opacity
     for idx, page in enumerate(reader.pages):
         current_page_num = idx + 1
         
-        # పేజీ నంబర్ మ్యాచ్ అయితేనే వాటర్‌మార్క్ వేయడం
         if target_pages_set is None or current_page_num in target_pages_set:
             box = page.mediabox
             width, height = float(box.width), float(box.height)
-            
-            wm_buf = io.BytesIO()
-            c = canvas.Canvas(wm_buf, pagesize=(width, height))
-            c.setFont("Helvetica-Bold", font_size)
-            c.setFillColor(Color(0.4, 0.4, 0.4, alpha=opacity))
-            c.saveState()
-            
-            margin_x = 40
-            margin_y = 40
-            
-            if position == "Center Diagonal (మధ్యలో - 45° వాలుగా)":
-                c.translate(width / 2.0, height / 2.0)
-                c.rotate(45)
-                c.drawCentredString(0, 0, text)
-            elif position == "Center Straight (మధ్యలో - నిలువు/అడ్డం 0°)":
-                c.translate(width / 2.0, height / 2.0)
-                c.drawCentredString(0, 0, text)
-            elif position == "Top-Left (ఎగువ ఎడమ)":
-                c.drawString(margin_x, height - margin_y - font_size, text)
-            elif position == "Top-Right (ఎగువ కుడి)":
-                c.drawRightString(width - margin_x, height - margin_y - font_size, text)
-            elif position == "Bottom-Left (దిగువ ఎడమ)":
-                c.drawString(margin_x, margin_y, text)
-            elif position == "Bottom-Right (దిగువ కుడి)":
-                c.drawRightString(width - margin_x, margin_y, text)
-            else:
-                c.translate(width / 2.0, height / 2.0)
-                c.rotate(45)
-                c.drawCentredString(0, 0, text)
-
-            c.restoreState()
-            c.save()
-            wm_buf.seek(0)
-            
+            wm_buf = create_wm_layer(width, height, text, position, opacity, font_size)
             wm_reader = PdfReader(wm_buf)
             page.merge_page(wm_reader.pages[0])
             
@@ -188,3 +189,23 @@ def apply_advanced_watermark(file_obj, text, target_pages_set, position, opacity
     writer.write(buf)
     buf.seek(0)
     return buf
+
+def generate_watermark_preview_page(file_bytes, page_1based, text, position, opacity, font_size):
+    reader = PdfReader(io.BytesIO(file_bytes))
+    target_idx = max(0, min(page_1based - 1, len(reader.pages) - 1))
+    page = reader.pages[target_idx]
+    
+    box = page.mediabox
+    width, height = float(box.width), float(box.height)
+    
+    wm_buf = create_wm_layer(width, height, text, position, opacity, font_size)
+    wm_reader = PdfReader(wm_buf)
+    
+    writer = PdfWriter()
+    page.merge_page(wm_reader.pages[0])
+    writer.add_page(page)
+    
+    buf = io.BytesIO()
+    writer.write(buf)
+    buf.seek(0)
+    return buf.getvalue()
