@@ -150,10 +150,7 @@ def create_wm_layer(width, height, text, position, opacity, font_size):
     c.setFont("Helvetica-Bold", font_size)
     c.setFillColor(Color(0.4, 0.4, 0.4, alpha=opacity))
     c.saveState()
-    
-    margin_x = 40
-    margin_y = 40
-    
+    margin_x, margin_y = 40, 40
     if position == "Center Diagonal (మధ్యలో - 45° వాలుగా)":
         c.translate(width / 2.0, height / 2.0)
         c.rotate(45)
@@ -173,7 +170,6 @@ def create_wm_layer(width, height, text, position, opacity, font_size):
         c.translate(width / 2.0, height / 2.0)
         c.rotate(45)
         c.drawCentredString(0, 0, text)
-
     c.restoreState()
     c.save()
     wm_buf.seek(0)
@@ -191,7 +187,6 @@ def apply_advanced_watermark(file_bytes, text, target_pages_set, position, opaci
             wm_reader = PdfReader(wm_buf)
             page.merge_page(wm_reader.pages[0])
         writer.add_page(page)
-
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
@@ -201,17 +196,14 @@ def generate_interactive_preview_page(file_bytes, page_1based, angle, wm_enabled
     reader = PdfReader(io.BytesIO(file_bytes))
     target_idx = max(0, min(page_1based - 1, len(reader.pages) - 1))
     page = reader.pages[target_idx]
-    
     if angle != 0:
         page.rotate(angle)
-        
     if wm_enabled and wm_text.strip():
         box = page.mediabox
         width, height = float(box.width), float(box.height)
         wm_buf = create_wm_layer(width, height, wm_text, wm_pos, opacity, font_size)
         wm_reader = PdfReader(wm_buf)
         page.merge_page(wm_reader.pages[0])
-        
     writer = PdfWriter()
     writer.add_page(page)
     buf = io.BytesIO()
@@ -226,7 +218,6 @@ def convert_images_to_pdf(uploaded_image_files):
         if img.mode != "RGB":
             img = img.convert("RGB")
         images.append(img)
-    
     buf = io.BytesIO()
     if images:
         images[0].save(buf, format="PDF", save_all=True, append_images=images[1:])
@@ -270,3 +261,70 @@ def reorder_pdf_pages(file_bytes, new_order_list):
     writer.write(buf)
     buf.seek(0)
     return buf
+
+# ----------- NEW ADVANCED: PAGE NUMBERING & COMPRESSION -----------
+def add_page_numbers(file_bytes, style="Page X of Y", position="Bottom-Center", font_size=10):
+    reader = PdfReader(io.BytesIO(file_bytes))
+    writer = PdfWriter()
+    total_pages = len(reader.pages)
+    
+    for idx, page in enumerate(reader.pages):
+        current_p = idx + 1
+        box = page.mediabox
+        pw, ph = float(box.width), float(box.height)
+        
+        num_str = f"Page {current_p} of {total_pages}" if style == "Page X of Y" else f"Page {current_p}"
+        
+        num_buf = io.BytesIO()
+        c = canvas.Canvas(num_buf, pagesize=(pw, ph))
+        c.setFont("Helvetica", font_size)
+        c.setFillColor(Color(0.2, 0.2, 0.2, alpha=0.8))
+        
+        margin_y = 25
+        if position == "Bottom-Center":
+            c.drawCentredString(pw / 2.0, margin_y, num_str)
+        elif position == "Bottom-Right":
+            c.drawRightString(pw - 35, margin_y, num_str)
+        elif position == "Bottom-Left":
+            c.drawString(35, margin_y, num_str)
+        elif position == "Top-Right":
+            c.drawRightString(pw - 35, ph - 30, num_str)
+        elif position == "Top-Center":
+            c.drawCentredString(pw / 2.0, ph - 30, num_str)
+            
+        c.save()
+        num_buf.seek(0)
+        
+        num_reader = PdfReader(num_buf)
+        page.merge_page(num_reader.pages[0])
+        writer.add_page(page)
+        
+    buf = io.BytesIO()
+    writer.write(buf)
+    buf.seek(0)
+    return buf
+
+def compress_pdf_file(file_bytes, image_quality=70):
+    """
+    PDF లోని పేజీలను స్మార్ట్ రీ-కంప్రెస్ చేసి ఫైల్ సైజును తగ్గిస్తుంది.
+    """
+    doc = pdfium.PdfDocument(file_bytes)
+    compressed_images = []
+    for page in doc:
+        pil_img = page.render(scale=1.5).to_pil()
+        if pil_img.mode != "RGB":
+            pil_img = pil_img.convert("RGB")
+        compressed_images.append(pil_img)
+        
+    out_buf = io.BytesIO()
+    if compressed_images:
+        compressed_images[0].save(
+            out_buf,
+            format="PDF",
+            save_all=True,
+            append_images=compressed_images[1:],
+            quality=image_quality,
+            optimize=True
+        )
+    out_buf.seek(0)
+    return out_buf
