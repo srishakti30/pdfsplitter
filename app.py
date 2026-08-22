@@ -10,12 +10,12 @@ import time
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Smart PDF Suite")
-st.caption("PDF వ్యూయర్, అడ్వాన్స్‌డ్ స్ప్లిట్టర్, మెర్జర్, పాస్‌వర్డ్ సెక్యూరిటీ మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
+st.caption("PDF వ్యూయర్, అడ్వాన్స్‌డ్ స్ప్లిట్టర్, మెర్జర్, పాస్‌వర్డ్ సెక్యూరిటీ (లాక్ & అన్‌లాక్) మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్టర్.")
 
 tab1, tab2, tab3, tab4 = st.tabs([
     "👁️ & ✂️ PDF Preview & Splitter", 
     "📑 PDF Merger (కలపడం)", 
-    "🔒 PDF Lock (పాస్‌వర్డ్ సెట్ చేయడం)",
+    "🔒 & 🔓 PDF Lock / Unlock (పాస్‌వర్డ్)",
     "🌐 Multi-Language Text Extractor"
 ])
 
@@ -259,50 +259,96 @@ with tab2:
             )
 
 # -------------------------------------------------------------
-# TAB 3: PDF లాక్ / పాస్‌వర్డ్ సెక్యూరిటీ
+# TAB 3: PDF లాక్ & అన్‌లాక్ (పాస్‌వర్డ్ సెట్ / రిమూవ్)
 # -------------------------------------------------------------
 with tab3:
-    st.subheader("🔒 PDF Password Protection (లాక్ చేయడం)")
-    st.caption("మీ సున్నితమైన PDF డాక్యుమెంట్లకు బలమైన పాస్‌వర్డ్‌ను సెట్ చేసి భద్రపరచండి.")
+    st.subheader("🔒 & 🔓 PDF Security (లాక్ & అన్‌లాక్)")
+    st.caption("PDF ఫైళ్లకు పాస్‌వర్డ్ సెట్ చేయండి లేదా ఇప్పటికే ఉన్న పాస్‌వర్డ్‌ను తొలగించండి.")
 
-    lock_file = st.file_uploader("పాస్‌వర్డ్ పెట్టాల్సిన PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="lock_upload")
+    sec_action = st.radio(
+        "మీరు ఏమి చేయాలనుకుంటున్నారు?",
+        ["🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)", "🔓 పాస్‌వర్డ్ తీసివేయడం (Unlock PDF)"],
+        horizontal=True
+    )
 
-    if lock_file is not None:
-        file_base = lock_file.name.rsplit(".", 1)[0]
-        col_pass1, col_pass2 = st.columns(2)
-        
-        with col_pass1:
-            user_password = st.text_input("కొత్త పాస్‌వర్డ్ టైప్ చేయండి:", type="password", key="pwd_input")
-        with col_pass2:
-            confirm_password = st.text_input("పాస్‌వర్డ్‌ను మళ్లీ టైప్ చేయండి (Confirm):", type="password", key="pwd_confirm")
+    # విభాగం 1: పాస్‌వర్డ్ సెట్ చేయడం (Lock)
+    if sec_action == "🔒 పాస్‌వర్డ్ సెట్ చేయడం (Lock PDF)":
+        st.write("---")
+        lock_file = st.file_uploader("పాస్‌వర్డ్ పెట్టాల్సిన సాధారణ PDF ఫైల్‌ను అప్‌లోడ్ చేయండి", type=["pdf"], key="lock_upload")
 
-        if st.button("🔒 Set Password & Protect PDF", key="btn_lock_pdf"):
-            if not user_password:
-                st.warning("దయచేసి పాస్‌వర్డ్ నమోదు చేయండి.")
-            elif user_password != confirm_password:
-                st.error("రెండు పాస్‌వర్డ్‌లు సరిపోలడం లేదు (Passwords do not match).")
-            else:
-                reader = PdfReader(lock_file)
-                writer = PdfWriter()
+        if lock_file is not None:
+            file_base = lock_file.name.rsplit(".", 1)[0]
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                new_pwd = st.text_input("కొత్త పాస్‌వర్డ్ టైప్ చేయండి:", type="password", key="pwd_set")
+            with col_p2:
+                conf_pwd = st.text_input("పాస్‌వర్డ్‌ను ధృవీకరించండి (Confirm):", type="password", key="pwd_conf")
 
-                for page in reader.pages:
-                    writer.add_page(page)
+            if st.button("🔒 Set Password & Protect", key="btn_do_lock"):
+                if not new_pwd:
+                    st.warning("దయచేసి పాస్‌వర్డ్ నమోదు చేయండి.")
+                elif new_pwd != conf_pwd:
+                    st.error("రెండు పాస్‌వర్డ్‌లు సరిపోలడం లేదు.")
+                else:
+                    reader = PdfReader(lock_file)
+                    writer = PdfWriter()
+                    for page in reader.pages:
+                        writer.add_page(page)
+                    writer.encrypt(new_pwd)
 
-                # పాస్‌వర్డ్ ఎన్‌క్రిప్షన్ (128-bit AES సెక్యూరిటీ)
-                writer.encrypt(user_password)
+                    out_buf = io.BytesIO()
+                    writer.write(out_buf)
+                    out_buf.seek(0)
 
-                locked_buffer = io.BytesIO()
-                writer.write(locked_buffer)
-                locked_buffer.seek(0)
+                    st.balloons()
+                    st.success("✅ PDFకి పాస్‌వర్డ్ విజయవంతంగా సెట్ చేయబడింది!")
+                    st.download_button(
+                        label=f"📥 Download Protected_{file_base}.pdf",
+                        data=out_buf,
+                        file_name=f"Protected_{file_base}.pdf",
+                        mime="application/pdf"
+                    )
 
-                st.balloons()
-                st.success("✅ PDFకి పాస్‌వర్డ్ విజయవంతంగా సెట్ చేయబడింది!")
-                st.download_button(
-                    label=f"📥 Download Protected_{file_base}.pdf",
-                    data=locked_buffer,
-                    file_name=f"Protected_{file_base}.pdf",
-                    mime="application/pdf"
-                )
+    # విభాగం 2: పాస్‌వర్డ్ తీసివేయడం (Unlock)
+    elif sec_action == "🔓 పాస్‌వర్డ్ తీసివేయడం (Unlock PDF)":
+        st.write("---")
+        unlock_file = st.file_uploader("పాస్‌వర్డ్ ఉన్న (Locked) PDF ఫైల్‌ను అప్‌లోడ్ చేయండి", type=["pdf"], key="unlock_upload")
+
+        if unlock_file is not None:
+            file_base = unlock_file.name.rsplit(".", 1)[0]
+            current_pwd = st.text_input("ఈ PDF ప్రస్తుత పాస్‌వర్డ్ టైప్ చేయండి:", type="password", key="pwd_unlock")
+
+            if st.button("🔓 Remove Password & Unlock PDF", key="btn_do_unlock"):
+                if not current_pwd:
+                    st.warning("దయచేసి ప్రస్తుత పాస్‌వర్డ్ నమోదు చేయండి.")
+                else:
+                    try:
+                        reader = PdfReader(unlock_file)
+                        if reader.is_encrypted:
+                            decrypt_status = reader.decrypt(current_pwd)
+                            if decrypt_status == 0:
+                                st.error("❌ తప్పు పాస్‌వర్డ్! దయచేసి సరైన పాస్‌వర్డ్ నమోదు చేయండి.")
+                            else:
+                                writer = PdfWriter()
+                                for page in reader.pages:
+                                    writer.add_page(page)
+                                
+                                unlocked_buf = io.BytesIO()
+                                writer.write(unlocked_buf)
+                                unlocked_buf.seek(0)
+
+                                st.balloons()
+                                st.success("✅ పాస్‌వర్డ్ విజయవంతంగా తొలగించబడింది! ఇప్పుడు ఇది సాధారణ PDFగా మారింది.")
+                                st.download_button(
+                                    label=f"📥 Download Unlocked_{file_base}.pdf",
+                                    data=unlocked_buf,
+                                    file_name=f"Unlocked_{file_base}.pdf",
+                                    mime="application/pdf"
+                                )
+                        else:
+                            st.info("ఈ PDF ఫైల్‌కు ఎలాంటి పాస్‌వర్డ్ లేదు, ఇది ఇప్పటికే అన్‌లాక్ చేయబడి ఉంది.")
+                    except Exception as e:
+                        st.error(f"అన్‌లాక్ చేయడంలో లోపం: {e}")
 
 # -------------------------------------------------------------
 # TAB 4: మల్టీ-లాంగ్వేజ్ టెక్స్ట్ ఎక్స్‌ట్రాక్టర్
