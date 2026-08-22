@@ -1,159 +1,177 @@
 import streamlit as st
 from pypdf import PdfReader, PdfWriter
+import pypdfium2 as pdfium
 from langdetect import detect
+from PIL import Image
 import io
-import base64
+import time
 
 st.set_page_config(page_title="DocuFlow Studio", page_icon="📄", layout="wide")
 
 st.title("📄 DocuFlow Studio | Smart PDF Tools")
-st.write("పిడిఎఫ్ ప్రివ్యూ చూస్తూ పేజీలను కట్ చేయడం మరియు టెక్స్ట్ ఎక్స్‌ట్రాక్ట్ చేసే టూల్.")
+st.caption("PDFని పేజీల వారీగా ఇమేజ్ రూపంలో చూస్తూ కట్ చేయడం మరియు డయాగ్నోస్టిక్స్.")
 
-def display_pdf(file_bytes):
-    """అప్‌లోడ్ చేసిన PDFని వెబ్‌సైట్ స్క్రీన్‌పైనే చూపించే వ్యూయర్"""
-    base64_pdf = base64.b64encode(file_bytes).decode('utf-8')
-    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="700px" type="application/pdf" style="border: 1px solid #ccc; border-radius: 8px;"></iframe>'
-    st.markdown(pdf_display, unsafe_allow_html=True)
-
-tab1, tab2 = st.tabs(["✂️ PDF Preview & Splitter", "🌐 Multi-Language Text Extractor"])
+tab1, tab2 = st.tabs(["👁️ & ✂️ PDF Preview & Splitter", "🌐 Multi-Language Text Extractor"])
 
 # -------------------------------------------------------------
-# TAB 1: లైవ్ PDF వ్యూయర్ మరియు స్ప్లిట్టర్
+# TAB 1: PDF రెండరింగ్ & స్ప్లిట్టింగ్
 # -------------------------------------------------------------
 with tab1:
-    st.subheader("📄 PDF Live Preview & Splitter")
-    st.caption("ఎడమవైపు ఒరిజినల్ PDFని స్క్రోల్ చేస్తూ చూసి, కుడివైపు ఏ పేజీలు కావాలో కట్ చేసుకోండి.")
+    col_left, col_right = st.columns([1.2, 1])
 
-    uploaded_pdf = st.file_uploader("PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="splitter_upload")
+    with col_left:
+        st.subheader("👁️ PDF Live Preview")
+        uploaded_pdf = st.file_uploader("PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="splitter_upload")
+
+    # డయాగ్నోస్టిక్ డేటా ట్రాకింగ్
+    diag_status = "No File Uploaded"
+    diag_pages = 0
+    diag_size_mb = 0.0
+    diag_render_time = 0.0
+    diag_errors = []
 
     if uploaded_pdf is not None:
-        pdf_bytes = uploaded_pdf.getvalue()
-        reader = PdfReader(uploaded_pdf)
-        total_pages = len(reader.pages)
+        try:
+            start_time = time.time()
+            pdf_bytes = uploaded_pdf.getvalue()
+            diag_size_mb = len(pdf_bytes) / (1024 * 1024)
+            
+            # PyPDFium2 ద్వారా PDF ఓపెన్ చేయడం
+            pdf_doc = pdfium.PdfDocument(pdf_bytes)
+            diag_pages = len(pdf_doc)
+            diag_status = "File Loaded Successfully"
 
-        # స్క్రీన్‌ను రెండు భాగాలుగా విభజించడం (ఎడమవైపు వ్యూయర్, కుడివైపు కంట్రోల్స్)
-        col_preview, col_controls = st.columns([1.2, 1], gap="large")
+            reader = PdfReader(io.BytesIO(pdf_bytes))
+            total_pages = len(reader.pages)
 
-        with col_preview:
-            st.markdown("#### 👁️ PDF Live View")
-            display_pdf(pdf_bytes)
+            with col_left:
+                # పేజీ నావిగేషన్ కంట్రోలర్
+                page_col1, page_col2 = st.columns([2, 1])
+                with page_col1:
+                    preview_page = st.number_input("చూడాల్సిన పేజీ సంఖ్య (Page Viewer):", min_value=1, max_value=total_pages, value=1)
+                
+                # ఎంచుకున్న పేజీని ఇమేజ్‌గా మార్చి చూపించడం
+                page = pdf_doc.get_page(preview_page - 1)
+                pil_image = page.render(scale=2.0).to_pil()
+                diag_render_time = time.time() - start_time
+                
+                st.image(pil_image, caption=f"పేజీ {preview_page} / {total_pages}", use_container_width=True)
 
-        with col_controls:
-            st.markdown("#### ⚙️ Split Settings")
-            st.success(f"మొత్తం పేజీల సంఖ్య: **{total_pages}**")
+            with col_right:
+                st.subheader("⚙️ Split Settings")
+                st.success(f"మొత్తం పేజీల సంఖ్య: **{total_pages}**")
 
-            split_mode = st.radio(
-                "విభజన పద్ధతిని ఎంచుకోండి:",
-                ["కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)", "2 భాగాలుగా విడదీయడం", "3 భాగాలుగా విడదీయడం"]
-            )
+                split_mode = st.radio(
+                    "విభజన పద్ధతిని ఎంచుకోండి:",
+                    ["కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)", "2 భాగాలుగా విడదీయడం", "3 భాగాలుగా విడదీయడం"]
+                )
 
-            st.markdown("---")
-
-            # ఆప్షన్ 1: కస్టమ్ రేంజ్
-            if split_mode == "కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)":
-                c1, c2 = st.columns(2)
-                with c1:
-                    start_p = st.number_input("నుండి (Start Page)", min_value=1, max_value=total_pages, value=1)
-                with c2:
-                    end_p = st.number_input("వరకు (End Page)", min_value=start_p, max_value=total_pages, value=min(start_p + 1, total_pages))
-
-                if st.button("✂️ Generate Cut PDF", key="btn_custom", use_container_width=True):
-                    writer = PdfWriter()
-                    for p in range(start_p - 1, end_p):
-                        writer.add_page(reader.pages[p])
-                    
-                    out_buffer = io.BytesIO()
-                    writer.write(out_buffer)
-                    out_buffer.seek(0)
-                    
-                    st.download_button(
-                        label=f"📥 Download Pages {start_p}-{end_p} (PDF)",
-                        data=out_buffer,
-                        file_name=f"Pages_{start_p}_to_{end_p}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
-
-            # ఆప్షన్ 2: 2 భాగాలు
-            elif split_mode == "2 భాగాలుగా విడదీయడం":
-                split_point = st.slider("మొదటి భాగం ముగింపు పేజీ:", min_value=1, max_value=total_pages - 1, value=total_pages // 2 if total_pages > 1 else 1)
-                st.info(f"👉 Part 1: పేజీలు 1 - {split_point}\n👉 Part 2: పేజీలు {split_point + 1} - {total_pages}")
-
-                if st.button("✂️ Split into 2 PDFs", key="btn_two_parts", use_container_width=True):
-                    # Part 1
-                    w1 = PdfWriter()
-                    for p in range(0, split_point):
-                        w1.add_page(reader.pages[p])
-                    buf1 = io.BytesIO()
-                    w1.write(buf1)
-                    buf1.seek(0)
-
-                    # Part 2
-                    w2 = PdfWriter()
-                    for p in range(split_point, total_pages):
-                        w2.add_page(reader.pages[p])
-                    buf2 = io.BytesIO()
-                    w2.write(buf2)
-                    buf2.seek(0)
-
-                    st.download_button(label=f"📥 Download Part 1 (1-{split_point})", data=buf1, file_name=f"Part_1_Pages_1_{split_point}.pdf", mime="application/pdf", use_container_width=True)
-                    st.download_button(label=f"📥 Download Part 2 ({split_point+1}-{total_pages})", data=buf2, file_name=f"Part_2_Pages_{split_point+1}_{total_pages}.pdf", mime="application/pdf", use_container_width=True)
-
-            # ఆప్షన్ 3: 3 భాగాలు
-            elif split_mode == "3 భాగాలుగా విడదీయడం":
-                if total_pages < 3:
-                    st.warning("ఈ PDFలో 3 కంటే తక్కువ పేజీలు ఉన్నాయి.")
-                else:
+                # ఆప్షన్ 1: కస్టమ్ రేంజ్
+                if split_mode == "కస్టమ్ పేజీ రేంజ్ (ఒక భాగం)":
                     c1, c2 = st.columns(2)
                     with c1:
-                        p1_end = st.number_input("Part 1 ముగింపు పేజీ", min_value=1, max_value=total_pages - 2, value=1)
+                        start_p = st.number_input("నుండి (Start Page)", min_value=1, max_value=total_pages, value=1)
                     with c2:
-                        p2_end = st.number_input("Part 2 ముగింపు పేజీ", min_value=p1_end + 1, max_value=total_pages - 1, value=p1_end + 1)
+                        end_p = st.number_input("వరకు (End Page)", min_value=start_p, max_value=total_pages, value=min(start_p+1, total_pages))
 
-                    st.info(f"👉 Part 1: 1 - {p1_end}\n👉 Part 2: {p1_end + 1} - {p2_end}\n👉 Part 3: {p2_end + 1} - {total_pages}")
+                    if st.button("✂️ Generate Cut PDF", key="btn_custom"):
+                        writer = PdfWriter()
+                        for p in range(start_p - 1, end_p):
+                            writer.add_page(reader.pages[p])
+                        out_buffer = io.BytesIO()
+                        writer.write(out_buffer)
+                        out_buffer.seek(0)
+                        
+                        st.download_button(
+                            label=f"📥 Download Pages {start_p}-{end_p} (PDF)",
+                            data=out_buffer,
+                            file_name=f"Pages_{start_p}_to_{end_p}.pdf",
+                            mime="application/pdf"
+                        )
 
-                    if st.button("✂️ Split into 3 PDFs", key="btn_three_parts", use_container_width=True):
-                        # Part 1
-                        w1 = PdfWriter()
-                        for p in range(0, p1_end):
+                # ఆప్షన్ 2: 2 భాగాలు
+                elif split_mode == "2 భాగాలుగా విడదీయడం":
+                    split_point = st.slider("మొదటి భాగం ముగింపు పేజీ", min_value=1, max_value=total_pages - 1, value=total_pages // 2 if total_pages > 1 else 1)
+                    st.write(f"👉 **పార్ట్ 1:** 1-{split_point} | **పార్ట్ 2:** {split_point + 1}-{total_pages}")
+
+                    if st.button("✂️ Split into 2 PDFs", key="btn_two"):
+                        w1, w2 = PdfWriter(), PdfWriter()
+                        for p in range(0, split_point):
                             w1.add_page(reader.pages[p])
-                        b1 = io.BytesIO()
-                        w1.write(b1)
-                        b1.seek(0)
-
-                        # Part 2
-                        w2 = PdfWriter()
-                        for p in range(p1_end, p2_end):
+                        for p in range(split_point, total_pages):
                             w2.add_page(reader.pages[p])
-                        b2 = io.BytesIO()
-                        w2.write(b2)
-                        b2.seek(0)
+                        
+                        b1, b2 = io.BytesIO(), io.BytesIO()
+                        w1.write(b1); b1.seek(0)
+                        w2.write(b2); b2.seek(0)
 
-                        # Part 3
-                        w3 = PdfWriter()
-                        for p in range(p2_end, total_pages):
-                            w3.add_page(reader.pages[p])
-                        b3 = io.BytesIO()
-                        w3.write(b3)
-                        b3.seek(0)
+                        st.download_button(f"📥 Download Part 1 (1-{split_point})", data=b1, file_name="Part_1.pdf", mime="application/pdf")
+                        st.download_button(f"📥 Download Part 2 ({split_point+1}-{total_pages})", data=b2, file_name="Part_2.pdf", mime="application/pdf")
 
-                        st.download_button(label=f"📥 Download Part 1 (1-{p1_end})", data=b1, file_name="Part_1.pdf", mime="application/pdf", use_container_width=True)
-                        st.download_button(label=f"📥 Download Part 2 ({p1_end+1}-{p2_end})", data=b2, file_name="Part_2.pdf", mime="application/pdf", use_container_width=True)
-                        st.download_button(label=f"📥 Download Part 3 ({p2_end+1}-{total_pages})", data=b3, file_name="Part_3.pdf", mime="application/pdf", use_container_width=True)
+                # ఆప్షన్ 3: 3 భాగాలు
+                elif split_mode == "3 భాగాలుగా విడదీయడం":
+                    if total_pages < 3:
+                        st.warning("ఈ PDFలో 3 కంటే తక్కువ పేజీలు ఉన్నాయి.")
+                    else:
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            p1_end = st.number_input("భాగం 1 ముగింపు పేజీ", min_value=1, max_value=total_pages - 2, value=1)
+                        with c2:
+                            p2_end = st.number_input("భాగం 2 ముగింపు పేజీ", min_value=p1_end + 1, max_value=total_pages - 1, value=p1_end + 1)
+
+                        st.write(f"👉 **1:** 1-{p1_end} | **2:** {p1_end+1}-{p2_end} | **3:** {p2_end+1}-{total_pages}")
+
+                        if st.button("✂️ Split into 3 PDFs", key="btn_three"):
+                            w1, w2, w3 = PdfWriter(), PdfWriter(), PdfWriter()
+                            for p in range(0, p1_end):
+                                w1.add_page(reader.pages[p])
+                            for p in range(p1_end, p2_end):
+                                w2.add_page(reader.pages[p])
+                            for p in range(p2_end, total_pages):
+                                w3.add_page(reader.pages[p])
+
+                            b1, b2, b3 = io.BytesIO(), io.BytesIO(), io.BytesIO()
+                            w1.write(b1); b1.seek(0)
+                            w2.write(b2); b2.seek(0)
+                            w3.write(b3); b3.seek(0)
+
+                            st.download_button(f"📥 Part 1 (1-{p1_end})", data=b1, file_name="Part_1.pdf", mime="application/pdf")
+                            st.download_button(f"📥 Part 2 ({p1_end+1}-{p2_end})", data=b2, file_name="Part_2.pdf", mime="application/pdf")
+                            st.download_button(f"📥 Part 3 ({p2_end+1}-{total_pages})", data=b3, file_name="Part_3.pdf", mime="application/pdf")
+
+        except Exception as e:
+            diag_status = "Error Occurred"
+            diag_errors.append(str(e))
+            st.error(f"ప్రాసెసింగ్ లోపం: {e}")
+
+    # --- డయాగ్నోస్టిక్స్ ప్యానెల్ (System Diagnostics) ---
+    st.markdown("---")
+    with st.expander("🛠️ సిస్టమ్ డయాగ్నోస్టిక్స్ & హెల్త్ స్టేటస్ (System Diagnostics)"):
+        st.write("ఈ ప్యానెల్ అప్‌లోడ్ చేసిన ఫైల్ స్థితిని మరియు సిస్టమ్ రెండరింగ్‌ను పర్యవేక్షిస్తుంది:")
+        d_col1, d_col2, d_col3, d_col4 = st.columns(4)
+        d_col1.metric("ఫైల్ స్థితి (Status)", diag_status)
+        d_col2.metric("మొత్తం పేజీలు", diag_pages)
+        d_col3.metric("ఫైల్ సైజు", f"{diag_size_mb:.2f} MB")
+        d_col4.metric("రెండర్ సమయం", f"{diag_render_time:.2f} సెకన్లు")
+
+        if diag_errors:
+            st.error("ఎర్రర్ వివరాలు:")
+            for err in diag_errors:
+                st.code(err)
+        else:
+            st.success("✅ పిడిఎఫ్ వ్యూయర్ ఇంజిన్ సాధారణంగా పనిచేస్తోంది (No Engine Errors).")
 
 # -------------------------------------------------------------
-# TAB 2: భాషల వారీగా టెక్స్ట్ ఎక్స్‌ట్రాక్టర్
+# TAB 2: టెక్స్ట్ ఎక్స్‌ట్రాక్టర్
 # -------------------------------------------------------------
 with tab2:
     st.subheader("🌐 Multi-Language Text Extractor")
-    st.caption("PDFలోని టెక్స్ట్‌ను గుర్తించి భాషల వారీగా విభజిస్తుంది.")
-
-    uploaded_lang_file = st.file_uploader("PDFని అప్‌లోడ్ చేయండి", type=["pdf"], key="lang_upload")
+    uploaded_lang_file = st.file_uploader("PDF ఫైల్‌ను ఇక్కడ అప్‌లోడ్ చేయండి", type=["pdf"], key="lang_upload")
 
     if uploaded_lang_file is not None:
-        reader_lang = PdfReader(uploaded_lang_file)
+        reader = PdfReader(uploaded_lang_file)
         all_text = ""
-        for page in reader_lang.pages:
+        for page in reader.pages:
             t = page.extract_text()
             if t:
                 all_text += t + "\n\n"
@@ -165,27 +183,27 @@ with tab2:
             cleaned = para.strip()
             if len(cleaned) > 5:
                 try:
-                    l = detect(cleaned)
-                    if l == 'te':
+                    lang = detect(cleaned)
+                    if lang == 'te':
                         lang1_text.append(cleaned)
-                    elif l == 'en':
+                    elif lang == 'en':
                         lang2_text.append(cleaned)
-                    elif l == 'hi':
+                    elif lang == 'hi':
                         lang3_text.append(cleaned)
                 except:
                     pass
 
         st.success("విభజన పూర్తయింది!")
-        c1, c2, c3 = st.columns(3)
-        with c1:
+        col1, col2, col3 = st.columns(3)
+        with col1:
             st.subheader("తెలుగు (Telugu)")
-            st.text_area("ప్రివ్యూ", "\n\n".join(lang1_text[:3]), height=150, key="te_prev")
-            st.download_button("Download Telugu Text", data="\n\n".join(lang1_text), file_name="telugu_text.txt", mime="text/plain")
-        with c2:
+            st.text_area("ప్రివ్యూ", "\n\n".join(lang1_text[:3]), height=150, key="v_te")
+            st.download_button("Download Telugu Text", data="\n\n".join(lang1_text), file_name="telugu.txt", mime="text/plain")
+        with col2:
             st.subheader("ఇంగ్లీష్ (English)")
-            st.text_area("ప్రివ్యూ", "\n\n".join(lang2_text[:3]), height=150, key="en_prev")
-            st.download_button("Download English Text", data="\n\n".join(lang2_text), file_name="english_text.txt", mime="text/plain")
-        with c3:
-            st.subheader("హిందీ / ఇతర (Hindi/Other)")
-            st.text_area("ప్రివ్యూ", "\n\n".join(lang3_text[:3]), height=150, key="hi_prev")
-            st.download_button("Download Hindi Text", data="\n\n".join(lang3_text), file_name="hindi_text.txt", mime="text/plain")
+            st.text_area("ప్రివ్యూ", "\n\n".join(lang2_text[:3]), height=150, key="v_en")
+            st.download_button("Download English Text", data="\n\n".join(lang2_text), file_name="english.txt", mime="text/plain")
+        with col3:
+            st.subheader("హిందీ / ఇతర (Hindi)")
+            st.text_area("ప్రివ్యూ", "\n\n".join(lang3_text[:3]), height=150, key="v_hi")
+            st.download_button("Download Hindi Text", data="\n\n".join(lang3_text), file_name="hindi.txt", mime="text/plain")
