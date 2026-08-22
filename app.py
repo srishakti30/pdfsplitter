@@ -162,7 +162,7 @@ with tab2:
     st.subheader("📑 PDF Merger & ZIP Package")
     st.caption("బహుళ PDF ఫైళ్లను అప్‌లోడ్ చేసి ఒకే ఫైల్‌గా కలపండి లేదా విడివిడిగా ఒకే సురక్షిత ZIP ఫైల్‌గా ప్యాక్ చేయండి.")
     
-    m_files = st.file_uploader("కలపాల్సిన లేదా ప్యాక్ చేయాల్సిన PDF ఫైళ్లు:", type=["pdf"], accept_multiple_files=True, key="m_u_tab2")
+    m_files = st.file_uploader("కలపాల్సిన లేదా ప్యాక్ చేయాల్సిన PDF ఫైళ్లు:", accept_multiple_files=True, key="m_u_tab2")
     if m_files:
         st.info(f"మొత్తం ఎంచుకున్న ఫైళ్లు: **{len(m_files)}**")
         for idx, f in enumerate(m_files):
