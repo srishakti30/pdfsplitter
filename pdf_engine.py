@@ -3,6 +3,8 @@ import zipfile
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import Color
+from PIL import Image
+import pypdfium2 as pdfium
 
 def split_single_range(reader, start_p, end_p):
     writer = PdfWriter()
@@ -172,17 +174,14 @@ def create_wm_layer(width, height, text, position, opacity, font_size):
 def apply_advanced_watermark(file_bytes, text, target_pages_set, position, opacity=0.2, font_size=36):
     reader = PdfReader(io.BytesIO(file_bytes))
     writer = PdfWriter()
-    
     for idx, page in enumerate(reader.pages):
         current_page_num = idx + 1
-        
         if target_pages_set is None or current_page_num in target_pages_set:
             box = page.mediabox
             width, height = float(box.width), float(box.height)
             wm_buf = create_wm_layer(width, height, text, position, opacity, font_size)
             wm_reader = PdfReader(wm_buf)
             page.merge_page(wm_reader.pages[0])
-            
         writer.add_page(page)
 
     buf = io.BytesIO()
@@ -211,3 +210,56 @@ def generate_interactive_preview_page(file_bytes, page_1based, angle, wm_enabled
     writer.write(buf)
     buf.seek(0)
     return buf.getvalue()
+
+# ----------------- NEW ENGINES: IMAGES & REORDER -----------------
+def convert_images_to_pdf(uploaded_image_files):
+    images = []
+    for f in uploaded_image_files:
+        img = Image.open(f)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        images.append(img)
+    
+    buf = io.BytesIO()
+    if images:
+        images[0].save(buf, format="PDF", save_all=True, append_images=images[1:])
+    buf.seek(0)
+    return buf
+
+def convert_pdf_to_images_zip(pdf_bytes, base_name):
+    doc = pdfium.PdfDocument(pdf_bytes)
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w") as z:
+        for i, page in enumerate(doc):
+            pil_img = page.render(scale=2.0).to_pil()
+            img_buf = io.BytesIO()
+            pil_img.save(img_buf, format="JPEG", quality=92)
+            z.writestr(f"{base_name}_page_{i+1:03d}.jpg", img_buf.getvalue())
+    zip_buf.seek(0)
+    return zip_buf, len(doc)
+
+def delete_pdf_pages(file_bytes, delete_pages_set):
+    reader = PdfReader(io.BytesIO(file_bytes))
+    writer = PdfWriter()
+    kept_count = 0
+    for idx, page in enumerate(reader.pages):
+        p_num = idx + 1
+        if p_num not in delete_pages_set:
+            writer.add_page(page)
+            kept_count += 1
+    buf = io.BytesIO()
+    writer.write(buf)
+    buf.seek(0)
+    return buf, kept_count
+
+def reorder_pdf_pages(file_bytes, new_order_list):
+    reader = PdfReader(io.BytesIO(file_bytes))
+    writer = PdfWriter()
+    total = len(reader.pages)
+    for p_num in new_order_list:
+        if 1 <= p_num <= total:
+            writer.add_page(reader.pages[p_num - 1])
+    buf = io.BytesIO()
+    writer.write(buf)
+    buf.seek(0)
+    return buf
