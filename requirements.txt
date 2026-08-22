@@ -5,3 +5,4 @@ Pillow
 langdetect
 reportlab
 opencv-python-headless
+moviepy
