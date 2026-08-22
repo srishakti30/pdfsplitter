@@ -77,6 +77,14 @@ def merge_pdf_files(file_list):
     merged_output.seek(0)
     return merged_output, total_pages
 
+def zip_multiple_pdf_files(file_list):
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w") as z:
+        for f in file_list:
+            z.writestr(f.name, f.getvalue())
+    zip_buf.seek(0)
+    return zip_buf
+
 def lock_pdf(file_obj, password):
     reader = PdfReader(file_obj)
     writer = PdfWriter()
@@ -211,7 +219,6 @@ def generate_interactive_preview_page(file_bytes, page_1based, angle, wm_enabled
     buf.seek(0)
     return buf.getvalue()
 
-# ----------------- NEW ENGINES: IMAGES & REORDER -----------------
 def convert_images_to_pdf(uploaded_image_files):
     images = []
     for f in uploaded_image_files:
