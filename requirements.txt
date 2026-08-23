@@ -9,3 +9,4 @@ moviepy
 pymupdf
 pdf2docx
 python-docx
+numpy
