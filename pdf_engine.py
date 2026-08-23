@@ -104,7 +104,7 @@ def rotate_pdf_pages(pdf_bytes, rot_mode, target_page, angle):
     out.seek(0)
     return out.getvalue()
 
-def apply_advanced_watermark(pdf_bytes, wm_text, target_pages_set=None, position="Center Diagonal", opacity=0.3, font_size=36, color_hex="#ef4444"):
+def apply_advanced_watermark(pdf_bytes, wm_text, target_pages_set=None, position="Center Diagonal", opacity=0.35, font_size=38, color_hex="#ef4444"):
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
 
@@ -152,7 +152,7 @@ def apply_advanced_watermark(pdf_bytes, wm_text, target_pages_set=None, position
     out.seek(0)
     return out.getvalue()
 
-def generate_interactive_preview_page(pdf_bytes, page_num, angle=0, apply_wm=False, wm_text="", wm_pos="Center Diagonal", opacity=0.3, font_size=36, color_hex="#ef4444"):
+def generate_interactive_preview_page(pdf_bytes, page_num, angle=0, apply_wm=False, wm_text="", wm_pos="Center Diagonal", opacity=0.35, font_size=38, color_hex="#ef4444"):
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
     page = reader.pages[page_num - 1]
