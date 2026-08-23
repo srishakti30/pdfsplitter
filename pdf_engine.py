@@ -1,10 +1,13 @@
 import io
+import os
+import tempfile
 import zipfile
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import Color
 from PIL import Image
 import pypdfium2 as pdfium
+from pdf2docx import Converter
 
 def split_single_range(reader, start_p, end_p):
     writer = PdfWriter()
@@ -262,7 +265,7 @@ def reorder_pdf_pages(file_bytes, new_order_list):
     buf.seek(0)
     return buf
 
-# ----------- NEW ADVANCED: PAGE NUMBERING & COMPRESSION -----------
+# ----------- PAGE NUMBERING & COMPRESSION -----------
 def add_page_numbers(file_bytes, style="Page X of Y", position="Bottom-Center", font_size=10):
     reader = PdfReader(io.BytesIO(file_bytes))
     writer = PdfWriter()
@@ -305,9 +308,6 @@ def add_page_numbers(file_bytes, style="Page X of Y", position="Bottom-Center", 
     return buf
 
 def compress_pdf_file(file_bytes, image_quality=70):
-    """
-    PDF లోని పేజీలను స్మార్ట్ రీ-కంప్రెస్ చేసి ఫైల్ సైజును తగ్గిస్తుంది.
-    """
     doc = pdfium.PdfDocument(file_bytes)
     compressed_images = []
     for page in doc:
@@ -328,3 +328,32 @@ def compress_pdf_file(file_bytes, image_quality=70):
         )
     out_buf.seek(0)
     return out_buf
+
+# ----------- 100% OFFLINE PDF ➜ WORD (.DOCX) CONVERTER -----------
+def convert_pdf_to_word_docx(pdf_bytes):
+    temp_dir = tempfile.mkdtemp()
+    temp_pdf_path = os.path.join(temp_dir, "source.pdf")
+    temp_docx_path = os.path.join(temp_dir, "output.docx")
+    
+    try:
+        with open(temp_pdf_path, "wb") as f:
+            f.write(pdf_bytes)
+            f.flush()
+            os.fsync(f.fileno())
+            
+        cv = Converter(temp_pdf_path)
+        cv.convert(temp_docx_path, start=0, end=None, multi_processing=False)
+        cv.close()
+        
+        with open(temp_docx_path, "rb") as f:
+            docx_bytes = f.read()
+            
+    finally:
+        if os.path.exists(temp_pdf_path):
+            os.remove(temp_pdf_path)
+        if os.path.exists(temp_docx_path):
+            os.remove(temp_docx_path)
+        if os.path.exists(temp_dir):
+            os.rmdir(temp_dir)
+            
+    return docx_bytes
