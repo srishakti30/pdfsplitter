@@ -15,7 +15,7 @@ import enhancer_engine as enhance_eng
 
 st.set_page_config(page_title="DocuFlow Studio Pro", page_icon="📄", layout="wide", initial_sidebar_state="collapsed")
 
-# Modern Styling & Realistic On-Image Laser Scan Effect
+# Modern Styling & Mobile-Optimized Upload UX
 st.markdown("""
 <style>
     .main { background-color: #0f172a; }
@@ -96,7 +96,7 @@ if st.session_state.active_page == "Home":
         {"id": "editor", "icon": "📝", "title": "PDF Content Editor", "desc": "లేఅవుట్ పాడవకుండా టెక్స్ట్ రీప్లేస్, స్టాంపులు"},
         {"id": "pdf2word", "icon": "📄", "title": "PDF ➜ Word (.docx)", "desc": "PDFని నేరుగా Microsoft Wordగా మార్చడం"},
         {"id": "merge", "icon": "📑", "title": "Merge & ZIP", "desc": "PDF ఫైళ్ల అనుసంధానం & ZIP ప్యాకర్"},
-        {"id": "img2pdf", "icon": "🖼️", "title": "Image ↔ PDF", "desc": "ఫోటోల నుండి PDF & PDF నుండి JPGs"},
+        {"id": "img2pdf", "icon": "🖼️", "title": "Image ↔ PDF", "desc": "మొబైల్ గ్యాలరీ ఫోటోల నుండి PDF & PDF నుండి JPGs"},
         {"id": "media", "icon": "🎬", "title": "Media ↔ Video/Audio", "desc": "వీడియో నోట్స్ & ఆడియో స్లైడ్‌షోలు"},
         {"id": "num", "icon": "🔢", "title": "Page Numbering", "desc": "ఆటోమేటిక్ పేజీ సంఖ్యల ముద్రణ"},
         {"id": "compress", "icon": "🗜️", "title": "PDF Compressor", "desc": "నాణ్యత తగ్గకుండా ఫైల్ సైజు కుదింపు"},
@@ -134,7 +134,7 @@ else:
         col_l, col_r = st.columns([1.2, 1])
         with col_l:
             st.subheader("👁️ Live Visual Studio")
-            u_pdf = st.file_uploader("PDF ఫైల్‌ను అప్‌లోడ్ చేయండి", type=["pdf"], key="main_studio_upload")
+            u_pdf = st.file_uploader("PDF ఫైల్‌ను అప్‌లోడ్ చేయండి (Upto 200MB)", type=["pdf"], key="main_studio_upload")
 
         if u_pdf is not None:
             pdf_bytes = u_pdf.getvalue()
@@ -225,23 +225,21 @@ else:
                 except Exception as e:
                     st.error(f"ప్రివ్యూ లోపం: {e}")
 
-    # 2. 🪄 Photo & Vintage Art Restorer (MOBILE-FRIENDLY & DIRECT LASER SCAN)
+    # 2. 🪄 Photo & Vintage Art Restorer
     elif st.session_state.active_page == "enhancer":
         st.subheader("🪄 Vintage Photo Restoration & Laser Scanner Studio")
         st.caption("పాతకాలం నాటి ఫోటోలు, మచ్చలు పడిన చిత్రాలు, ముఖాల HD క్లారిటీ మరియు పెన్సిల్ స్కెచ్ ఆర్ట్‌ను లైవ్ లేజర్ స్కానింగ్‌తో పునరుద్ధరించండి.")
         
-        e_img = st.file_uploader("ఫోటోను అప్‌లోడ్ చేయండి (JPG / PNG):", type=["jpg", "jpeg", "png"], key="enh_img_u")
+        e_img = st.file_uploader("ఫోటోను అప్‌లోడ్ చేయండి (గ్యాలరీ నుండి):", type=["jpg", "jpeg", "png", "webp"], key="enh_img_u")
         
         if e_img:
             img_bytes = e_img.getvalue()
             b_name_i = e_img.name.rsplit(".", 1)[0]
             base64_orig = base64.b64encode(img_bytes).decode("utf-8")
             
-            # Vertical Mobile-Optimized Flow
             st.markdown("##### 🖼️ ఒరిజినల్ ఫోటో (Input)")
             scan_container = st.empty()
             
-            # Show original photo inside standard view
             scan_container.markdown(f"""
             <div class="photo-scan-container">
                 <img src="data:image/jpeg;base64,{base64_orig}" />
@@ -263,7 +261,6 @@ else:
                 scan_btn = st.button("🚀 Run Live Laser Scan & Restore Photo")
                 
             if scan_btn:
-                # 1. Show Laser Beam Scanning Directly on the uploaded photo
                 scan_container.markdown(f"""
                 <div class="photo-scan-container">
                     <div class="laser-beam"></div>
@@ -271,16 +268,13 @@ else:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Smooth Progress Bar Simulation
                 prog = st.progress(0)
                 for p in range(1, 101, 15):
                     time.sleep(0.12)
                     prog.progress(p)
                 
-                # 2. Process Enhanced Photo
                 out_img_buf, pil_res_img = enhance_eng.restore_and_enhance_photo(img_bytes, enh_mode)
                 
-                # Reset original scan container
                 scan_container.markdown(f"""
                 <div class="photo-scan-container" style="border-color: #10b981;">
                     <img src="data:image/jpeg;base64,{base64_orig}" />
@@ -288,7 +282,6 @@ else:
                 """, unsafe_allow_html=True)
                 prog.empty()
                 
-                # 3. Display Restored Output Right Below
                 st.write("---")
                 st.markdown("##### ✨ ప్రాసెస్ చేసిన అద్భుతమైన ఫలితం (Restored Result)")
                 st.image(pil_res_img, caption="✅ స్కాన్ పూర్తయింది - మీ ఫోటో సిద్ధంగా ఉంది!", use_container_width=True)
@@ -400,7 +393,7 @@ else:
 
                     elif sub_tool.startswith("5."):
                         ed_page_num = st.number_input("సంతకం పెట్టాల్సిన పేజీ సంఖ్య:", 1, t_ed_pages, 1, key="ed_p_sel5")
-                        sig_file = st.file_uploader("సంతకం / ఫోటో (PNG / JPG):", type=["png", "jpg", "jpeg"], key="sig_u")
+                        sig_file = st.file_uploader("సంతకం / ఫోటో (PNG / JPG):", type=["png", "jpg", "jpeg", "webp"], key="sig_u")
                         c_ix, c_iy = st.columns(2)
                         sig_x = c_ix.slider("X స్థానం (%):", 5, 90, 60)
                         sig_y = c_iy.slider("Y స్థానం (%):", 5, 90, 75)
@@ -477,18 +470,26 @@ else:
                     st.balloons()
                     st.download_button("📥 Download All Files ZIP", z_out, "DocuFlow_Archive.zip", "application/zip")
 
-    # 6. Image ↔ PDF
+    # 6. Image ↔ PDF (BULK MOBILE GALLERY SELECTION OPTIMIZED)
     elif st.session_state.active_page == "img2pdf":
-        st.subheader("🖼️ Image ↔ PDF Converter")
+        st.subheader("🖼️ Image ↔ PDF Converter (Mobile Gallery Bulk Support)")
+        st.caption("మొబైల్ గ్యాలరీలోని ఫోటోలను లాంగ్ ప్రెస్ చేసి ఒకేసారి ఎన్ని ఫోటోలైనా సెలెక్ట్ చేసుకుని PDFగా మార్చుకోవచ్చు.")
         conv_choice = st.radio("మోడ్:", ["📷 Images to PDF", "📄 PDF to Images"], horizontal=True)
         if conv_choice == "📷 Images to PDF":
-            img_files = st.file_uploader("ఫోటోలను ఎంచుకోండి:", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
-            if img_files and st.button("📄 Convert Images to PDF"):
-                out_pdf = engine.convert_images_to_pdf(img_files)
-                st.balloons()
-                st.download_button("📥 Download Converted PDF", out_pdf, "Photos_Document.pdf", "application/pdf")
+            img_files = st.file_uploader(
+                "ఫోటోలను ఎంచుకోండి (గ్యాలరీ నుండి ఒకేసారి అన్నిటినీ సెలెక్ట్ చేయండి):", 
+                type=["jpg", "jpeg", "png", "webp", "bmp"], 
+                accept_multiple_files=True,
+                key="bulk_img_u"
+            )
+            if img_files:
+                st.success(f"✅ ఎంచుకున్న మొత్తం ఫోటోలు: **{len(img_files)}**")
+                if st.button("📄 Convert Images to Single PDF"):
+                    out_pdf = engine.convert_images_to_pdf(img_files)
+                    st.balloons()
+                    st.download_button("📥 Download Converted PDF", out_pdf, "Gallery_Photos.pdf", "application/pdf")
         else:
-            pdf_to_img_f = st.file_uploader("PDF ఫైల్:", type=["pdf"])
+            pdf_to_img_f = st.file_uploader("PDF ఫైల్:", type=["pdf"], key="pdf2img_u")
             if pdf_to_img_f and st.button("📷 Convert PDF to JPGs"):
                 b_n = pdf_to_img_f.name.rsplit(".", 1)[0]
                 z_out, count = engine.convert_pdf_to_images_zip(pdf_to_img_f.getvalue(), b_n)
@@ -501,11 +502,11 @@ else:
         m_dir = st.radio("కన్వర్షన్:", ["🎬 Video/GIF టు PDF (Extract Storyboard)", "🎥 PDF టు MP4 Video / Audio Slideshow"], horizontal=True)
         
         if m_dir == "🎬 Video/GIF టు PDF (Extract Storyboard)":
-            media_f = st.file_uploader("వీడియో లేదా GIF ఫైల్ (Max 50MB):", type=["mp4", "mov", "avi", "mkv", "gif"])
+            media_f = st.file_uploader("వీడియో లేదా GIF ఫైల్ (Max 100MB):", type=["mp4", "mov", "avi", "mkv", "gif", "webm"])
             if media_f:
                 mb = len(media_f.getvalue()) / (1024 * 1024)
-                if mb > 50.0:
-                    st.error("ఫైల్ సైజు 50MB కంటే తక్కువ ఉండాలి.")
+                if mb > 100.0:
+                    st.error("ఫైల్ సైజు 100MB కంటే తక్కువ ఉండాలి.")
                 else:
                     ext = media_f.name.rsplit(".", 1)[-1].lower()
                     b_name = media_f.name.rsplit(".", 1)[0]
@@ -528,7 +529,7 @@ else:
                 sec_p = st.slider("ప్రతి పేజీ వ్యవధి (సెకన్లు):", 0.5, 5.0, 2.0, 0.5)
                 
                 st.markdown("#### 🎵 ఆడియో జోడించడం (Optional Voiceover / Music)")
-                aud_file = st.file_uploader("ఆడియో ఫైల్ (MP3 / WAV):", type=["mp3", "wav"], key="aud_u")
+                aud_file = st.file_uploader("ఆడియో ఫైల్ (MP3 / WAV / M4A):", type=["mp3", "wav", "m4a", "ogg"], key="aud_u")
                 
                 if aud_file:
                     st.audio(aud_file, format="audio/mp3")
