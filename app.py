@@ -3,15 +3,19 @@ from pypdf import PdfReader
 import pypdfium2 as pdfium
 from langdetect import detect
 import io
+import time
+import base64
+from PIL import Image
 
 # Custom Modular Engines
 import pdf_engine as engine
 import media_engine as media_eng
 import pdf_editor_engine as editor_eng
+import enhancer_engine as enhance_eng
 
 st.set_page_config(page_title="DocuFlow Studio Pro", page_icon="📄", layout="wide", initial_sidebar_state="collapsed")
 
-# Modern Corporate Responsive Styling
+# Modern Styling & Realistic On-Image Laser Scan Effect
 st.markdown("""
 <style>
     .main { background-color: #0f172a; }
@@ -34,11 +38,42 @@ st.markdown("""
         border-radius: 12px;
         padding: 16px;
         text-align: center;
-        min-height: 120px;
+        min-height: 125px;
         margin-bottom: 12px;
     }
     .tool-card h4 { margin-top: 0px; color: #38bdf8; }
     .tool-card p { font-size: 13px; color: #94a3b8; margin-bottom: 0px; }
+
+    /* Laser Scanner Container directly on the image */
+    .photo-scan-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        max-width: 550px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 2px solid #38bdf8;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    }
+    .photo-scan-container img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    .laser-beam {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: #38bdf8;
+        box-shadow: 0 0 15px #38bdf8, 0 0 25px #00f0ff, 0 0 35px #ffffff;
+        animation: laserScan 1.6s infinite alternate ease-in-out;
+    }
+    @keyframes laserScan {
+        0% { top: 0%; opacity: 0.8; }
+        100% { top: 97%; opacity: 1; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -51,12 +86,13 @@ def set_page(p_name):
 st.title("📄 DocuFlow Studio Pro")
 st.caption("✨ Enterprise PDF & Media Engine | 100% Client-Side & Private")
 
-# ---------------- HOME DASHBOARD (10 ROCK SOLID TOOLS) ----------------
+# ---------------- HOME DASHBOARD (11 POWER TOOLS) ----------------
 if st.session_state.active_page == "Home":
     st.markdown("### 🧰 All Tools Dashboard")
     
     tools_list = [
         {"id": "visual", "icon": "👁️", "title": "Live Visual Studio", "desc": "పేజీ ప్రివ్యూతో స్ప్లిట్, రొటేట్, వాటర్‌మార్క్"},
+        {"id": "enhancer", "icon": "🪄", "title": "Photo & Art Restorer", "desc": "పాత ఫోటోల రీస్టోరేషన్, లేజర్ స్కానర్ & HD క్లారిటీ"},
         {"id": "editor", "icon": "📝", "title": "PDF Content Editor", "desc": "లేఅవుట్ పాడవకుండా టెక్స్ట్ రీప్లేస్, స్టాంపులు"},
         {"id": "pdf2word", "icon": "📄", "title": "PDF ➜ Word (.docx)", "desc": "PDFని నేరుగా Microsoft Wordగా మార్చడం"},
         {"id": "merge", "icon": "📑", "title": "Merge & ZIP", "desc": "PDF ఫైళ్ల అనుసంధానం & ZIP ప్యాకర్"},
@@ -189,7 +225,83 @@ else:
                 except Exception as e:
                     st.error(f"ప్రివ్యూ లోపం: {e}")
 
-    # 2. PDF Content Editor
+    # 2. 🪄 Photo & Vintage Art Restorer (MOBILE-FRIENDLY & DIRECT LASER SCAN)
+    elif st.session_state.active_page == "enhancer":
+        st.subheader("🪄 Vintage Photo Restoration & Laser Scanner Studio")
+        st.caption("పాతకాలం నాటి ఫోటోలు, మచ్చలు పడిన చిత్రాలు, ముఖాల HD క్లారిటీ మరియు పెన్సిల్ స్కెచ్ ఆర్ట్‌ను లైవ్ లేజర్ స్కానింగ్‌తో పునరుద్ధరించండి.")
+        
+        e_img = st.file_uploader("ఫోటోను అప్‌లోడ్ చేయండి (JPG / PNG):", type=["jpg", "jpeg", "png"], key="enh_img_u")
+        
+        if e_img:
+            img_bytes = e_img.getvalue()
+            b_name_i = e_img.name.rsplit(".", 1)[0]
+            base64_orig = base64.b64encode(img_bytes).decode("utf-8")
+            
+            # Vertical Mobile-Optimized Flow
+            st.markdown("##### 🖼️ ఒరిజినల్ ఫోటో (Input)")
+            scan_container = st.empty()
+            
+            # Show original photo inside standard view
+            scan_container.markdown(f"""
+            <div class="photo-scan-container">
+                <img src="data:image/jpeg;base64,{base64_orig}" />
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.write("")
+            col_ctrl1, col_ctrl2 = st.columns([1.2, 1.1])
+            with col_ctrl1:
+                enh_mode = st.selectbox("పునరుద్ధరణ మోడ్ (Restoration Mode):", [
+                    "3. 💎 True HD Super-Clarity & Smart Sharpness (ముఖాలు స్పష్టంగా & అల్ట్రా HD)",
+                    "1. 🎨 Pencil Sketch & Line Art (చేత్తో గీసిన పెన్సిల్ ఆర్ట్)",
+                    "2. 🧹 B&W Scratch & Spot Cleaner (మచ్చలు, గీతలు తొలగింపు)",
+                    "4. 🌈 Soft Warm / Vintage Colorize Tint (పాత ఫోటోకు లైట్ కలర్ టచ్)"
+                ])
+            with col_ctrl2:
+                st.write("")
+                st.write("")
+                scan_btn = st.button("🚀 Run Live Laser Scan & Restore Photo")
+                
+            if scan_btn:
+                # 1. Show Laser Beam Scanning Directly on the uploaded photo
+                scan_container.markdown(f"""
+                <div class="photo-scan-container">
+                    <div class="laser-beam"></div>
+                    <img src="data:image/jpeg;base64,{base64_orig}" />
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Smooth Progress Bar Simulation
+                prog = st.progress(0)
+                for p in range(1, 101, 15):
+                    time.sleep(0.12)
+                    prog.progress(p)
+                
+                # 2. Process Enhanced Photo
+                out_img_buf, pil_res_img = enhance_eng.restore_and_enhance_photo(img_bytes, enh_mode)
+                
+                # Reset original scan container
+                scan_container.markdown(f"""
+                <div class="photo-scan-container" style="border-color: #10b981;">
+                    <img src="data:image/jpeg;base64,{base64_orig}" />
+                </div>
+                """, unsafe_allow_html=True)
+                prog.empty()
+                
+                # 3. Display Restored Output Right Below
+                st.write("---")
+                st.markdown("##### ✨ ప్రాసెస్ చేసిన అద్భుతమైన ఫలితం (Restored Result)")
+                st.image(pil_res_img, caption="✅ స్కాన్ పూర్తయింది - మీ ఫోటో సిద్ధంగా ఉంది!", use_container_width=True)
+                st.balloons()
+                
+                st.download_button(
+                    "📥 Download Restored HD Photo (.jpg)",
+                    out_img_buf.getvalue(),
+                    f"Restored_{b_name_i}.jpg",
+                    "image/jpeg"
+                )
+
+    # 3. PDF Content Editor
     elif st.session_state.active_page == "editor":
         st.subheader("📝 Smart PDF Layout & Advanced In-Place Studio")
         st.caption("టేబుల్స్, గడులు, గుర్తులు పాడవకుండా టెక్స్ట్‌ను మార్చండి, స్టాంపులు వేయండి, సెన్సిటివ్ డేటాను మాస్క్ చేయండి.")
@@ -319,7 +431,7 @@ else:
                     except Exception as e:
                         st.error(f"ప్రివ్యూ లోపం: {e}")
 
-    # 3. Pure PDF to Word (.docx) Converter
+    # 4. Pure PDF to Word (.docx) Converter
     elif st.session_state.active_page == "pdf2word":
         st.subheader("📄 Accurate PDF to Microsoft Word (.docx) Converter")
         st.caption("టేబుల్స్, గడులు, పారాగ్రాఫ్‌లు, ఇమేజ్‌లు ఏవీ పాడవకుండా PDFని నేరుగా Word డాక్యుమెంట్‌గా మార్చండి (100% ఆఫ్‌లైన్).")
@@ -344,7 +456,7 @@ else:
                     except Exception as e:
                         st.error(f"కన్వర్షన్ లోపం: {e}")
 
-    # 4. Merge & ZIP
+    # 5. Merge & ZIP
     elif st.session_state.active_page == "merge":
         st.subheader("📑 PDF Merger & Universal ZIP Packer")
         m_files = st.file_uploader("ఫైళ్లను ఎంచుకోండి (PDF, Docs, Images, Code):", accept_multiple_files=True, key="m_u_page")
@@ -365,7 +477,7 @@ else:
                     st.balloons()
                     st.download_button("📥 Download All Files ZIP", z_out, "DocuFlow_Archive.zip", "application/zip")
 
-    # 5. Image ↔ PDF
+    # 6. Image ↔ PDF
     elif st.session_state.active_page == "img2pdf":
         st.subheader("🖼️ Image ↔ PDF Converter")
         conv_choice = st.radio("మోడ్:", ["📷 Images to PDF", "📄 PDF to Images"], horizontal=True)
@@ -383,7 +495,7 @@ else:
                 st.balloons()
                 st.download_button("📥 Download JPGs (ZIP)", z_out, f"{b_n}_Images.zip", "application/zip")
 
-    # 6. Media ↔ Video & Audio
+    # 7. Media ↔ Video & Audio
     elif st.session_state.active_page == "media":
         st.subheader("🎬 Media ↔ PDF & Audio Slideshow")
         m_dir = st.radio("కన్వర్షన్:", ["🎬 Video/GIF టు PDF (Extract Storyboard)", "🎥 PDF టు MP4 Video / Audio Slideshow"], horizontal=True)
@@ -436,7 +548,7 @@ else:
                             st.balloons()
                             st.download_button("📥 Download Video (MP4)", v_out, f"{p_bname}_Video.mp4", "video/mp4")
 
-    # 7. Page Numbering
+    # 8. Page Numbering
     elif st.session_state.active_page == "num":
         st.subheader("🔢 PDF Page Numbering (పేజీ సంఖ్యలు ముద్రించడం)")
         st.caption("PDF లోని ప్రతి పేజీపై ఆటోమేటిక్‌గా పేజీ సంఖ్యలను వేయండి.")
@@ -454,7 +566,7 @@ else:
                 st.success("✅ పేజీ నంబర్లు విజయవంతంగా ముద్రించబడ్డాయి!")
                 st.download_button("📥 Download Numbered PDF", out, f"Numbered_{b_n}.pdf", "application/pdf")
 
-    # 8. PDF Compressor
+    # 9. PDF Compressor
     elif st.session_state.active_page == "compress":
         st.subheader("🗜️ PDF File Compressor (సైజు తగ్గించడం)")
         st.caption("PDF నాణ్యత దెబ్బతినకుండా ఫైల్ సైజును ఆప్టిమైజ్ చేసి తగ్గించండి.")
@@ -473,7 +585,7 @@ else:
                     st.success(f"✅ కంప్రెషన్ పూర్తయింది! కొత్త సైజు: **{new_mb:.2f} MB** (దాదాపు **{saved_pct}%** తగ్గింది)")
                     st.download_button("📥 Download Compressed PDF", c_out, f"Compressed_{comp_f.name}", "application/pdf")
 
-    # 9. Delete / Reorder
+    # 10. Delete / Reorder
     elif st.session_state.active_page == "reorder":
         st.subheader("🗑️ & 🔀 Delete or Reorder Pages")
         del_file = st.file_uploader("PDF ఫైల్:", type=["pdf"], key="del_reorder_u")
@@ -501,7 +613,7 @@ else:
                     st.balloons()
                     st.download_button("📥 Download Reordered PDF", out, f"Reordered_{b_name}.pdf", "application/pdf")
 
-    # 10. Security & Text
+    # 11. Security & Text
     elif st.session_state.active_page == "security":
         st.subheader("🔒 Security & 🌐 Multi-Language Text")
         c_s1, c_s2 = st.columns(2)
