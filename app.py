@@ -15,7 +15,7 @@ import enhancer_engine as enhance_eng
 
 st.set_page_config(page_title="DocuFlow Studio Pro", page_icon="📄", layout="wide", initial_sidebar_state="collapsed")
 
-# Modern Styling & Mobile-Optimized Upload UX
+# Modern Styling & Responsive UX
 st.markdown("""
 <style>
     .main { background-color: #0f172a; }
@@ -44,7 +44,7 @@ st.markdown("""
     .tool-card h4 { margin-top: 0px; color: #38bdf8; }
     .tool-card p { font-size: 13px; color: #94a3b8; margin-bottom: 0px; }
 
-    /* Laser Scanner Container directly on the image */
+    /* Laser Scanner Container */
     .photo-scan-container {
         position: relative;
         display: inline-block;
@@ -129,12 +129,12 @@ else:
         st.rerun()
     st.write("---")
 
-    # 1. Live Visual Studio
+    # 1. Live Visual Studio (UPGRADED WATERMARK COLORS & ROTATE ACTIONS)
     if st.session_state.active_page == "visual":
         col_l, col_r = st.columns([1.2, 1])
         with col_l:
             st.subheader("👁️ Live Visual Studio")
-            u_pdf = st.file_uploader("PDF ఫైల్‌ను అప్‌లోడ్ చేయండి (Upto 200MB)", type=["pdf"], key="main_studio_upload")
+            u_pdf = st.file_uploader("PDF ఫైల్‌ను అప్‌లోడ్ చేయండి (Upto 200MB):", type=["pdf"], key="main_studio_upload")
 
         if u_pdf is not None:
             pdf_bytes = u_pdf.getvalue()
@@ -180,11 +180,19 @@ else:
                 elif tool_choice == "🔄 Rotate":
                     st.write("---")
                     rot_mode = st.radio("పరిధి:", ["ఈ పేజీ మాత్రమే (Current Page)", "అన్ని పేజీలు (All Pages)"], horizontal=True)
-                    angle_choice = st.selectbox("కోణం:", [0, 90, 180, 270], format_func=lambda x: f"{x}° క్లాక్‌వైజ్" if x != 0 else "0° (యథావిధిగా)")
-                    if st.button("🔄 Rotate PDF"):
-                        out = engine.rotate_pdf_pages(pdf_bytes, rot_mode, p_curr, angle_choice)
+                    angle_choice = st.selectbox("కోణం:", [90, 180, 270, 0], format_func=lambda x: f"{x}° క్లాక్‌వైజ్" if x != 0 else "0° (యథావిధిగా)")
+                    
+                    st.write("")
+                    if st.button("🔄 Apply & Save Rotated PDF"):
+                        out_rot = engine.rotate_pdf_pages(pdf_bytes, rot_mode, p_curr, angle_choice)
                         st.balloons()
-                        st.download_button("📥 Download Rotated PDF", out, f"Rotated_{base_name}.pdf", "application/pdf")
+                        st.success("✅ రొటేషన్ విజయవంతంగా అప్లై అయింది!")
+                        st.download_button(
+                            "📥 Download Rotated PDF", 
+                            out_rot, 
+                            f"Rotated_{base_name}.pdf", 
+                            "application/pdf"
+                        )
 
                 elif tool_choice == "💧 Watermark":
                     st.write("---")
@@ -195,17 +203,22 @@ else:
                         "Top-Left (ఎగువ ఎడమ)", "Top-Right (ఎగువ కుడి)",
                         "Bottom-Left (దిగువ ఎడమ)", "Bottom-Right (దిగువ కుడి)"
                     ])
-                    c_op, c_fs = st.columns(2)
-                    opacity = c_op.slider("పారదర్శకత:", 0.05, 0.9, 0.25, 0.05)
-                    f_size = c_fs.slider("సైజు:", 16, 72, 36)
+                    
+                    c_col, c_op, c_fs = st.columns([1.2, 1, 1])
+                    wm_color = c_col.color_picker("వాటర్‌మార్క్ రంగు:", "#ef4444")
+                    opacity = c_op.slider("పారదర్శకత:", 0.05, 1.0, 0.35, 0.05)
+                    f_size = c_fs.slider("సైజు:", 16, 72, 38)
+                    
                     wm_target_mode = st.radio("పేజీలు:", ["అన్ని పేజీలకు", "ఎంచుకున్న పేజీలకు"], horizontal=True)
                     custom_pages_str = ""
                     if wm_target_mode == "ఎంచుకున్న పేజీలకు":
                         custom_pages_str = st.text_input("పేజీ సంఖ్యలు (ఉదా: 1, 3, 5-10):", value="1, 3")
-                    if st.button("💧 Apply Watermark"):
+                        
+                    if st.button("💧 Apply & Generate Watermarked PDF"):
                         t_set = engine.parse_page_numbers(custom_pages_str, total_p) if wm_target_mode == "ఎంచుకున్న పేజీలకు" else None
-                        out = engine.apply_advanced_watermark(pdf_bytes, wm_text, t_set, wm_pos, opacity, f_size)
+                        out = engine.apply_advanced_watermark(pdf_bytes, wm_text, t_set, wm_pos, opacity, f_size, wm_color)
                         st.balloons()
+                        st.success("✅ వాటర్‌మార్క్ విజయవంతంగా ముద్రించబడింది!")
                         st.download_button("📥 Download Watermarked PDF", out, f"Watermarked_{base_name}.pdf", "application/pdf")
 
             with col_l:
@@ -214,11 +227,12 @@ else:
                     eff_wm = (tool_choice == "💧 Watermark")
                     eff_wm_txt = wm_text if eff_wm else ""
                     eff_wm_pos = wm_pos if eff_wm else "Center Diagonal (మధ్యలో - 45° వాలుగా)"
-                    eff_op = opacity if eff_wm else 0.25
-                    eff_fs = f_size if eff_wm else 36
+                    eff_op = opacity if eff_wm else 0.35
+                    eff_fs = f_size if eff_wm else 38
+                    eff_col = wm_color if eff_wm else "#ef4444"
 
                     rendered_bytes = engine.generate_interactive_preview_page(
-                        pdf_bytes, p_curr, eff_angle, eff_wm, eff_wm_txt, eff_wm_pos, eff_op, eff_fs
+                        pdf_bytes, p_curr, eff_angle, eff_wm, eff_wm_txt, eff_wm_pos, eff_op, eff_fs, eff_col
                     )
                     preview_doc = pdfium.PdfDocument(rendered_bytes)
                     st.image(preview_doc.get_page(0).render(scale=2.0).to_pil(), caption=f"పేజీ {p_curr} / {total_p} (లైవ్ ప్రివ్యూ)", use_container_width=True)
@@ -470,7 +484,7 @@ else:
                     st.balloons()
                     st.download_button("📥 Download All Files ZIP", z_out, "DocuFlow_Archive.zip", "application/zip")
 
-    # 6. Image ↔ PDF (BULK MOBILE GALLERY SELECTION OPTIMIZED)
+    # 6. Image ↔ PDF
     elif st.session_state.active_page == "img2pdf":
         st.subheader("🖼️ Image ↔ PDF Converter (Mobile Gallery Bulk Support)")
         st.caption("మొబైల్ గ్యాలరీలోని ఫోటోలను లాంగ్ ప్రెస్ చేసి ఒకేసారి ఎన్ని ఫోటోలైనా సెలెక్ట్ చేసుకుని PDFగా మార్చుకోవచ్చు.")
