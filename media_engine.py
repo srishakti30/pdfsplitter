@@ -159,3 +159,4 @@ def convert_pdf_to_mp4_video(pdf_bytes, seconds_per_page=2.0, audio_file_bytes=N
     finally:
         if os.path.exists(temp_video_path):
             os.remove(temp_video_path)
+
