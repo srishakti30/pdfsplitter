@@ -6,3 +6,6 @@ langdetect
 reportlab
 opencv-python-headless
 moviepy
+pymupdf
+pdf2docx
+python-docx
