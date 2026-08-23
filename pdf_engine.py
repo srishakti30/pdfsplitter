@@ -107,10 +107,9 @@ def rotate_pdf_pages(pdf_bytes, rot_mode, target_page, angle):
 def apply_advanced_watermark(pdf_bytes, wm_text, target_pages_set=None, position="Center Diagonal", opacity=0.3, font_size=36, color_hex="#ef4444"):
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
-    total_p = len(reader.pages)
 
     # Convert Hex color to RGB
-    h = color_hex.lstrip('#')
+    h = str(color_hex).lstrip('#')
     rgb = tuple(int(h[i:i+2], 16)/255.0 for i in (0, 2, 4)) if len(h) == 6 else (1, 0, 0)
 
     for idx, page in enumerate(reader.pages):
@@ -163,7 +162,7 @@ def generate_interactive_preview_page(pdf_bytes, page_num, angle=0, apply_wm=Fal
     if apply_wm and wm_text.strip():
         pw = float(page.mediabox.width)
         ph = float(page.mediabox.height)
-        h = color_hex.lstrip('#')
+        h = str(color_hex).lstrip('#')
         rgb = tuple(int(h[i:i+2], 16)/255.0 for i in (0, 2, 4)) if len(h) == 6 else (1, 0, 0)
 
         wm_buf = io.BytesIO()
@@ -171,7 +170,7 @@ def generate_interactive_preview_page(pdf_bytes, page_num, angle=0, apply_wm=Fal
         c.setFont("Helvetica-Bold", font_size)
         c.setFillColor(colors.Color(rgb[0], rgb[1], rgb[2], alpha=opacity))
 
-        if "Diagonal" in position:
+        if "Diagonal" in wm_pos:
             c.saveState()
             c.translate(pw / 2, ph / 2)
             c.rotate(45)
