@@ -15,7 +15,7 @@ import enhancer_engine as enhance_eng
 
 st.set_page_config(page_title="DocuFlow Studio Pro", page_icon="📄", layout="wide", initial_sidebar_state="collapsed")
 
-# Modern Styling & Responsive UX
+# Modern Responsive Styling
 st.markdown("""
 <style>
     .main { background-color: #0f172a; }
@@ -129,7 +129,7 @@ else:
         st.rerun()
     st.write("---")
 
-    # 1. Live Visual Studio (UPGRADED WATERMARK COLORS & ROTATE ACTIONS)
+    # 1. Live Visual Studio (PERFECT ROTATE & MULTI-COLOR WATERMARK)
     if st.session_state.active_page == "visual":
         col_l, col_r = st.columns([1.2, 1])
         with col_l:
@@ -244,7 +244,7 @@ else:
         st.subheader("🪄 Vintage Photo Restoration & Laser Scanner Studio")
         st.caption("పాతకాలం నాటి ఫోటోలు, మచ్చలు పడిన చిత్రాలు, ముఖాల HD క్లారిటీ మరియు పెన్సిల్ స్కెచ్ ఆర్ట్‌ను లైవ్ లేజర్ స్కానింగ్‌తో పునరుద్ధరించండి.")
         
-        e_img = st.file_uploader("ఫోటోను అప్‌లోడ్ చేయండి (గ్యాలరీ నుండి):", type=["jpg", "jpeg", "png", "webp"], key="enh_img_u")
+        e_img = st.file_uploader("ఫోటోను అప్‌లోడ్ చేయండి (గ్యాలరీ నుండి):", type=["jpg", "jpeg", "png", "webp", "bmp"], key="enh_img_u")
         
         if e_img:
             img_bytes = e_img.getvalue()
@@ -484,24 +484,25 @@ else:
                     st.balloons()
                     st.download_button("📥 Download All Files ZIP", z_out, "DocuFlow_Archive.zip", "application/zip")
 
-    # 6. Image ↔ PDF
+    # 6. Image ↔ PDF (HEAVY CAMERA PHOTOS & 100% HD RESOLUTION FIX)
     elif st.session_state.active_page == "img2pdf":
-        st.subheader("🖼️ Image ↔ PDF Converter (Mobile Gallery Bulk Support)")
-        st.caption("మొబైల్ గ్యాలరీలోని ఫోటోలను లాంగ్ ప్రెస్ చేసి ఒకేసారి ఎన్ని ఫోటోలైనా సెలెక్ట్ చేసుకుని PDFగా మార్చుకోవచ్చు.")
+        st.subheader("🖼️ Image ↔ PDF Converter (HD Gallery Bulk Support)")
+        st.caption("మొబైల్ గ్యాలరీలోని హెవీ కెమెరా ఫోటోలను (Zero Quality Loss తో) ఒక్క క్లిక్‌లో హై-రిజల్యూషన్ PDFగా మార్చండి.")
         conv_choice = st.radio("మోడ్:", ["📷 Images to PDF", "📄 PDF to Images"], horizontal=True)
         if conv_choice == "📷 Images to PDF":
             img_files = st.file_uploader(
-                "ఫోటోలను ఎంచుకోండి (గ్యాలరీ నుండి ఒకేసారి అన్నిటినీ సెలెక్ట్ చేయండి):", 
+                "ఫోటోలను ఎంచుకోండి (గ్యాలరీ నుండి ఒకేసారి ఎన్ని ఫోటోలైనా సెలెక్ట్ చేయండి):", 
                 type=["jpg", "jpeg", "png", "webp", "bmp"], 
                 accept_multiple_files=True,
                 key="bulk_img_u"
             )
             if img_files:
                 st.success(f"✅ ఎంచుకున్న మొత్తం ఫోటోలు: **{len(img_files)}**")
-                if st.button("📄 Convert Images to Single PDF"):
-                    out_pdf = engine.convert_images_to_pdf(img_files)
-                    st.balloons()
-                    st.download_button("📥 Download Converted PDF", out_pdf, "Gallery_Photos.pdf", "application/pdf")
+                if st.button("📄 Convert Images to Single Ultra-HD PDF"):
+                    with st.spinner("హై-రిజల్యూషన్ ఫోటోలు ప్రాసెస్ అవుతున్నాయి..."):
+                        out_pdf = engine.convert_images_to_pdf(img_files)
+                        st.balloons()
+                        st.download_button("📥 Download Converted HD PDF", out_pdf, "Gallery_Photos_HD.pdf", "application/pdf")
         else:
             pdf_to_img_f = st.file_uploader("PDF ఫైల్:", type=["pdf"], key="pdf2img_u")
             if pdf_to_img_f and st.button("📷 Convert PDF to JPGs"):
