@@ -4,7 +4,7 @@ from pypdf import PdfReader, PdfWriter
 import pypdfium2 as pdfium
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from PIL import Image
+from PIL import Image, ImageOps
 
 def parse_page_numbers(input_str, total_pages):
     """యూజర్ ఎంటర్ చేసిన పేజీ నంబర్లను సెట్‌గా మారుస్తుంది"""
@@ -90,14 +90,17 @@ def split_all_single_pages_zip(reader, base_name):
     return zip_buf.getvalue()
 
 def rotate_pdf_pages(pdf_bytes, rot_mode, target_page, angle):
+    """రొటేషన్‌ను శాశ్వతంగా PDF స్ట్రక్చర్‌కు స్థిరపరుస్తుంది"""
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
     for idx, page in enumerate(reader.pages):
         p_num = idx + 1
         if rot_mode == "ఈ పేజీ మాత్రమే (Current Page)" and p_num == target_page:
-            page.rotate(angle)
+            current_rot = page.get('/Rotate', 0)
+            page.rotate((current_rot + angle) % 360)
         elif rot_mode == "అన్ని పేజీలు (All Pages)":
-            page.rotate(angle)
+            current_rot = page.get('/Rotate', 0)
+            page.rotate((current_rot + angle) % 360)
         writer.add_page(page)
     out = io.BytesIO()
     writer.write(out)
@@ -108,7 +111,6 @@ def apply_advanced_watermark(pdf_bytes, wm_text, target_pages_set=None, position
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
 
-    # Convert Hex color to RGB
     h = str(color_hex).lstrip('#')
     rgb = tuple(int(h[i:i+2], 16)/255.0 for i in (0, 2, 4)) if len(h) == 6 else (1, 0, 0)
 
@@ -157,7 +159,8 @@ def generate_interactive_preview_page(pdf_bytes, page_num, angle=0, apply_wm=Fal
     writer = PdfWriter()
     page = reader.pages[page_num - 1]
     if angle != 0:
-        page.rotate(angle)
+        current_rot = page.get('/Rotate', 0)
+        page.rotate((current_rot + angle) % 360)
 
     if apply_wm and wm_text.strip():
         pw = float(page.mediabox.width)
@@ -238,10 +241,21 @@ def zip_multiple_pdf_files(uploaded_files):
     return zip_buf.getvalue()
 
 def convert_images_to_pdf(uploaded_images):
-    pil_images = [Image.open(io.BytesIO(img.getvalue())).convert("RGB") for img in uploaded_images]
+    """భారీ కెమెరా ఫోటోలను ఒరిజినల్ HD క్వాలిటీతో PDFగా మారుస్తుంది"""
+    pil_images = []
+    for img_file in uploaded_images:
+        try:
+            pil_img = Image.open(io.BytesIO(img_file.getvalue()))
+            pil_img = ImageOps.exif_transpose(pil_img)  # Samsung EXIF Auto-Fix
+            if pil_img.mode in ("RGBA", "P"):
+                pil_img = pil_img.convert("RGB")
+            pil_images.append(pil_img)
+        except Exception:
+            continue
+
     out = io.BytesIO()
     if pil_images:
-        pil_images[0].save(out, format="PDF", save_all=True, append_images=pil_images[1:], quality=95)
+        pil_images[0].save(out, format="PDF", save_all=True, append_images=pil_images[1:], quality=100, resolution=300.0)
     out.seek(0)
     return out.getvalue()
 
